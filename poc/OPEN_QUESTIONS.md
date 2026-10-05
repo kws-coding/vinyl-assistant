@@ -25,13 +25,15 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Discogs terms: show "Data provided by Discogs" with a link in reports, do not store Discogs content, non-commercial marketplace data only. Not yet enforced in code.
 
 ## Vision
-- Accuracy is unmeasured. On record 001 the model read side B runout as `NC60016-01`; it is `BK06016-01`. Side A runout is only partly legible.
-- Photo role accuracy is unmeasured (no `photo_roles.csv` yet).
-- The first call hit `max_tokens` (2000) because thinking used it up; set to 8000. Cost in dollars is not computed because model pricing has not been verified.
+- Accuracy is unmeasured beyond record 001. Runout reads there were wrong or partial every time: shell run read side B as `NC60016-01` (actual `BK06016-01`); the Java client read side A as `00812227` (actual `0081227`, one extra digit) and side B as `6016-01` (correct but partial). The evidence builder must not demand exact equality on matrix text.
+- Photo role accuracy is unmeasured (no `photo_roles.csv` yet). On record 001 all 11 roles looked right to a human check of the 2-3 photos I viewed, not all 11.
+- Cost per call on record 001 (n=1 each): shell version about $0.079 (2,675 output tokens); Java client at effort `medium` with no per-photo notes about $0.063 (946 output tokens). The saving is not established: one sample each, and quality at `medium` is untested. `VISION_EFFORT` default `medium` is a guess.
+- Token prices (`VISION_PRICE_IN/OUT`, 2.00 and 10.00 per million) come from a cached table dated 2026-09-25, not a live lookup.
+- Structured output (`output_config.format` json_schema) plus `effort` worked live on the first try with `claude-sonnet-5-5`. Behavior with other models (for example Haiku 4.5) is untested.
 - Two-step variant (cheap role classification, then extraction per role) is not tried.
-- HEIC resizing uses macOS `sips` in a shell script. Throwaway and macOS-only.
+- HEIC resizing (`ImageResizer`) shells out to macOS `sips`. Throwaway and macOS-only.
 
 ## Not built yet
 - Evidence builder (model observations + `ReleaseInfo` into `IdentifierEvidence`, including how to compare partial matrix text and barcode formatting).
-- Vision client, runner, CSV input, report writer, call log with AI cost.
+- Runner, CSV input, report writer.
 - Condition experiment.
