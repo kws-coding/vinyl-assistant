@@ -1,0 +1,136 @@
+package dev.vinyl.poc.domain;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.function.BiPredicate;
+
+/**
+ * Compares what was read from the photos with one candidate release and returns one piece of evidence per
+ * identifier. Rules are deliberately forgiving about formatting and partial reads, and strict about content.
+ */
+public class EvidenceBuilder {
+
+    private static final int MIN_MATRIX_CHARS = 5;
+    private static final int MATRIX_FUZZY_FROM = 6;
+    private static final int MIN_BARCODE_DIGITS = 8;
+    /** Discogs release countries that say nothing about where a copy was manufactured. */
+    private static final Set<String> BROAD_COUNTRIES = Set.of("worldwide", "europe");
+
+    public List<IdentifierEvidence> build(ExtractedFacts facts, ReleaseInfo release) {
+        return List.of(
+                barcode(facts, release),
+                catalogNumber(facts, release),
+                label(facts, release),
+                country(facts, release),
+                format(facts, release),
+                matrix(facts, release));
+    }
+
+    private IdentifierEvidence barcode(ExtractedFacts facts, ReleaseInfo r) {
+        List<String> candidates = r.barcodes().stream()
+                .filter(b -> b.matches("[0-9 \\-]+"))
+                .map(EvidenceBuilder::digitsWithoutLeadingZeros)
+                .filter(d -> d.length() >= MIN_BARCODE_DIGITS - 1)
+                .toList();
+        List<Fact> observed = facts.barcodes().stream()
+                .filter(f -> digitsWithoutLeadingZeros(f.value()).length() >= MIN_BARCODE_DIGITS - 1).toList();
+        return compare(Identifier.BARCODE, observed, candidates,
+                (o, c) -> digitsWithoutLeadingZeros(o).equals(c));
+    }
+
+    private IdentifierEvidence catalogNumber(ExtractedFacts facts, ReleaseInfo r) {
+        List<String> candidates = r.catalogNumbers().stream().map(FuzzyText::alnum).filter(s -> !s.isEmpty()).toList();
+        return compare(Identifier.CATALOG_NUMBER, facts.catalogNumbers(), candidates,
+                (o, c) -> FuzzyText.alnum(o).equals(c));
+    }
+
+    private IdentifierEvidence label(ExtractedFacts facts, ReleaseInfo r) {
+        List<String> candidates = r.labels().stream().map(FuzzyText::alnum).filter(s -> !s.isEmpty()).toList();
+        return compare(Identifier.LABEL, facts.labels(), candidates, (o, c) -> {
+            String a = FuzzyText.alnum(o);
+            return !a.isEmpty() && (a.equals(c) || c.contains(a) || a.contains(c));
+        });
+    }
+
+    private IdentifierEvidence country(ExtractedFacts facts, ReleaseInfo r) {
+        String country = r.country() == null ? "" : r.country().trim().toLowerCase(Locale.ROOT);
+        if (country.isEmpty() || BROAD_COUNTRIES.contains(country)) {
+            return IdentifierEvidence.missing(Identifier.COUNTRY);
+        }
+        List<String> candidates = List.of(country.split("\\s*[&,/]\\s*")).stream()
+                .map(EvidenceBuilder::countryAlias).toList();
+        return compare(Identifier.COUNTRY, facts.countries(), candidates,
+                (o, c) -> countryAlias(o.toLowerCase(Locale.ROOT)).equals(c));
+    }
+
+    private IdentifierEvidence format(ExtractedFacts facts, ReleaseInfo r) {
+        String text = String.join(" ", r.formatDescriptions()).toLowerCase(Locale.ROOT);
+        boolean stereo = text.contains("stereo");
+        boolean mono = text.contains("mono");
+        for (Fact f : facts.formats()) {
+            String v = f.value().toLowerCase(Locale.ROOT);
+            if (v.contains("stereo")) {
+                if (stereo) {
+                    return IdentifierEvidence.match(Identifier.FORMAT, f.rawText());
+                }
+                if (mono) {
+                    return IdentifierEvidence.mismatch(Identifier.FORMAT, f.rawText());
+                }
+            } else if (v.contains("mono")) {
+                if (mono) {
+                    return IdentifierEvidence.match(Identifier.FORMAT, f.rawText());
+                }
+                if (stereo) {
+                    return IdentifierEvidence.mismatch(Identifier.FORMAT, f.rawText());
+                }
+            }
+        }
+        return IdentifierEvidence.missing(Identifier.FORMAT);
+    }
+
+    /**
+     * Partial and slightly misread etchings are expected. A fragment of at least five characters matches when
+     * it appears in a listed runout, allowing one misread character from six characters up. It is a mismatch
+     * only when the candidate lists runouts and none fit, which sends the record to a person.
+     */
+    private IdentifierEvidence matrix(ExtractedFacts facts, ReleaseInfo r) {
+        List<String> candidates = r.matrices().stream().map(FuzzyText::alnum).filter(s -> !s.isEmpty()).toList();
+        List<Fact> observed = facts.matrices().stream()
+                .filter(f -> FuzzyText.alnum(f.value()).length() >= MIN_MATRIX_CHARS).toList();
+        return compare(Identifier.MATRIX, observed, candidates, (o, c) -> {
+            String fragment = FuzzyText.alnum(o);
+            int errors = fragment.length() >= MATRIX_FUZZY_FROM ? 1 : 0;
+            return FuzzyText.approxContains(c, fragment, errors);
+        });
+    }
+
+    private static IdentifierEvidence compare(Identifier id, List<Fact> observed, List<String> candidates,
+                                              BiPredicate<String, String> same) {
+        if (observed.isEmpty() || candidates.isEmpty()) {
+            return IdentifierEvidence.missing(id);
+        }
+        for (Fact f : observed) {
+            for (String c : candidates) {
+                if (same.test(f.value(), c)) {
+                    return IdentifierEvidence.match(id, f.rawText());
+                }
+            }
+        }
+        return IdentifierEvidence.mismatch(id, observed.get(0).rawText());
+    }
+
+    private static String digitsWithoutLeadingZeros(String s) {
+        return s.replaceAll("[^0-9]", "").replaceFirst("^0+", "");
+    }
+
+    private static String countryAlias(String c) {
+        String s = c.trim().toLowerCase(Locale.ROOT).replace(".", "");
+        return switch (s) {
+            case "usa", "united states", "united states of america", "us" -> "us";
+            case "uk", "united kingdom", "england", "great britain" -> "uk";
+            case "west germany", "deutschland", "germany" -> "germany";
+            default -> s;
+        };
+    }
+}

@@ -33,7 +33,16 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Two-step variant (cheap role classification, then extraction per role) is not tried.
 - HEIC resizing (`ImageResizer`) shells out to macOS `sips`. Throwaway and macOS-only.
 
+## Evidence rules (`EvidenceBuilder`): assumptions to check on real data
+- Tested only on record 001 and made-up releases. Nothing here is measured on other records.
+- Country: Discogs "Worldwide" and "Europe" count as missing, not a mismatch, because a German label fits both. A specific different country (for example "US") is a mismatch, even though imports and exports exist.
+- Matrix: a fragment of 5+ characters matches if it appears in a listed runout, with one misread character allowed from 6 characters. No fit against a non-empty list is a MISMATCH. Discogs lists are often incomplete, so this can wrongly penalise the right release. The safe direction is that a mismatch on the top candidate sends the record to a person, but it can cost confident calls.
+- Barcode: digits only, leading zeros ignored; candidate "barcode" entries that are not purely digits are skipped (Discogs mixes in text like "ASCAP" and matrix strings). Reads under 7 digits are ignored.
+- Label: matches when either name contains the other, after dropping punctuation. May be too loose for short names.
+- Format: only stereo and mono are compared. "180g" and similar are ignored.
+- Artist, title and year from the photos are not used for evidence yet (only for the later artist and title search).
+- The pipeline test for record 001 uses made-up releases shaped like the real ones, because Discogs terms say not to store Discogs content.
+
 ## Not built yet
-- Evidence builder (model observations + `ReleaseInfo` into `IdentifierEvidence`, including how to compare partial matrix text and barcode formatting).
-- Runner, CSV input, report writer.
+- Runner, CSV input, report writer (and the candidate search flow: barcode, then catalog number plus label, then artist and title).
 - Condition experiment.
