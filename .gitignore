@@ -2,9 +2,14 @@
 .env
 *.env
 *.key
+.env.*
+*.pem
+*.p12
 
 # photos and generated output
-records/*/
+records/
+*.heic
+*.HEIC
 reports/
 out/
 logs/
