@@ -1,0 +1,18 @@
+# secrets
+.env
+*.env
+*.key
+
+# photos and generated output
+records/*/
+reports/
+out/
+logs/
+
+# build output and IDE files
+target/
+build/
+.gradle/
+.idea/
+*.iml
+.DS_Store
