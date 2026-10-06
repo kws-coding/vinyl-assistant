@@ -14,7 +14,6 @@ import dev.vinyl.poc.domain.EvidenceBuilder;
 import dev.vinyl.poc.domain.ExtractedFacts;
 import dev.vinyl.poc.domain.PricedCandidate;
 import dev.vinyl.poc.domain.ProfitCalculator;
-import dev.vinyl.poc.domain.ProfitEstimate;
 import dev.vinyl.poc.domain.ReleaseInfo;
 import dev.vinyl.poc.domain.ScoredCandidate;
 import dev.vinyl.poc.vision.FactsMapper;
@@ -105,14 +104,19 @@ public class RecordPipeline {
 
         Double topPrice = priced.stream().filter(p -> p.candidate().releaseId().equals(decision.topReleaseId()))
                 .map(PricedCandidate::price).findFirst().orElse(null);
-        String profit = "";
-        if (topPrice != null && rec.costBasis() != null && settings.profit() != null) {
-            ProfitEstimate e = new ProfitCalculator(settings.profit())
-                    .estimate(BigDecimal.valueOf(topPrice), rec.costBasis());
-            profit = e.profit().toPlainString();
+        String profitDiscogs = "";
+        String profitEbay = "";
+        if (topPrice != null && rec.costBasis() != null) {
+            BigDecimal price = BigDecimal.valueOf(topPrice);
+            profitDiscogs = new ProfitCalculator(settings.discogsProfit()).estimate(price, rec.costBasis())
+                    .profit().toPlainString();
+            profitEbay = new ProfitCalculator(settings.ebayProfit()).estimate(price, rec.costBasis())
+                    .profit().toPlainString();
+            if (settings.postageIsPlaceholder()) {
+                notes.add("profit uses placeholder postage (POC_POSTAGE not set)");
+            }
         } else if (topPrice != null) {
-            notes.add(settings.profit() == null ? "profit not computed: POC_POSTAGE not set"
-                    : "profit not computed: cost_basis blank");
+            notes.add("profit not computed: cost_basis blank");
         }
 
         String pricingError = "";
@@ -127,7 +131,8 @@ public class RecordPipeline {
                 String.format("%.2f", topScore), String.format("%.2f", decision.risk().amount()),
                 nz(decision.risk().rivalReleaseId()), found.stage(), String.valueOf(found.releases().size()),
                 String.valueOf(read.photos().size()), missingRoles(read), topPrice == null ? "" : String.format("%.2f", topPrice),
-                priceMissing(decision, topPrice), profit, rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(),
+                priceMissing(decision, topPrice), profitDiscogs, profitEbay,
+                rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(),
                 rec.ebaySoldHigh() == null ? "" : rec.ebaySoldHigh().toPlainString(), rec.ebayMatch(),
                 ebayAlert(topPrice, rec), pricingError,
                 String.valueOf(cached), cached ? "0" : read.call().costUsd().toPlainString(),

@@ -23,4 +23,14 @@ public record ProfitSettings(BigDecimal feeRate, BigDecimal perOrderFee, BigDeci
         return new ProfitSettings(new BigDecimal("0.136"), new BigDecimal("0.40"), new BigDecimal("5.50"),
                 postage, new BigDecimal("1.00"), BigDecimal.ZERO);
     }
+
+    /**
+     * Discogs: the 9% selling fee from the project brief, no flat fee. Unverified: whether the fee applies to
+     * shipping as well as the item, and whether payment processing fees come on top. Shipping charged,
+     * supplies and tax are the same placeholders as above.
+     */
+    public static ProfitSettings discogs(BigDecimal postage) {
+        return new ProfitSettings(new BigDecimal("0.09"), BigDecimal.ZERO, new BigDecimal("5.50"),
+                postage, new BigDecimal("1.00"), BigDecimal.ZERO);
+    }
 }

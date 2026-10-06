@@ -42,7 +42,7 @@ class RecordPipelineTest {
     @Test
     void reportHeaderAndRowHaveTheSameNumberOfColumns() {
         ReportRow row = new ReportRow("1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-                "", "", "", "", "", "", "", "");
+                "", "", "", "", "", "", "", "", "");
         assertEquals(ReportRow.HEADER.size(), row.fields().size());
         assertTrue(ReportRow.HEADER.contains("price_missing"));
     }

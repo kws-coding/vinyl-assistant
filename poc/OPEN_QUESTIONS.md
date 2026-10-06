@@ -7,7 +7,7 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Escalation limit (`Thresholds.riskLimit`, now a flat $5) vs the $25 test cutoff. Handle later, after Wednesday's run: replay the recorded gaps at several limits and pick from data. Consider a percentage-based rule (for example the larger of $5 or 15% of price), since a flat $5 means very different things at $10 and at $100.
 - eBay handling is a stopgap and needs a better design later (user flagged 2026-10-05). eBay figures are typed in by hand from Seller Hub, and many eBay listings do not show runouts, so a sale may be a different pressing and is a weak yardstick. Built so far: optional `ebay_sold_high` and `ebay_match` (same, unsure, no) columns, and an alert column that fires when the high sale is at least 2x the Discogs price and at least $20 above it (both numbers are guesses; `EbayAlert.defaults()`). It never changes a decision or a price, and a sale marked `no` raises nothing. Open: how bar 6 should weight eBay by `ebay_match` (not decided); whether to keep one average and one high or a list of sales; whether the alert should also fire when eBay is far below the Discogs price; and how to get eBay data in without typing it (no comps API is available to us).
 - Report columns for `discogs_touches` and `annoyance` (bar 8) are not added yet.
-- Real single-LP postage cost (no default in `ProfitSettings`; tests use a made-up 4.50).
+- Real single-LP postage cost. For the POC the runner uses a placeholder of 5.50 unless `POC_POSTAGE` is set, and the report says so. User says the real label cost is usually a bit less and varies with weight, so profit leans slightly low. Tests use a made-up 4.50.
 - Whether the AI may suggest a condition grade. CLAUDE.md currently says the AI never sets or outputs a grade. User was open to "suggest, user confirms or overrides" as a future feature; CLAUDE.md would need a deliberate edit.
 
 ## Guessed values (tune from the full run)
@@ -25,6 +25,7 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 
 ## Unverified facts
 - eBay fee model (13.6% of item + shipping + tax, plus $0.40) is a placeholder from the brief. Tax rate defaults to 0.
+- Discogs fee model is 9% of (item + shipping + tax), no flat fee (`ProfitSettings.discogs`). Only the 9% comes from the brief. Unverified: whether the fee applies to shipping, and whether payment processing fees come on top. User says Discogs matters more than eBay for the POC; the report shows profit for both (`profit_discogs_usd`, `profit_ebay_usd`), at the same Discogs suggested price and the same $5.50 shipping charged.
 - JUnit 6.1.3 and Jackson 3.2.3 coordinates came from Maven Central metadata. The JUnit docs pages did not show them. Jackson 3 notes were read from the official wiki. Both build and run.
 - No Discogs sales-history endpoint found. Only `/marketplace/sales/{id}`, `/releases/{id}/sales`, `/marketplace/history/{id}` (all 404) and `/releases/{id}/stats` (returns only `is_offensive`) were tried.
 - Price suggestions return a price per grade. Only checked on two releases. Whether they depend on the seller account is unknown.

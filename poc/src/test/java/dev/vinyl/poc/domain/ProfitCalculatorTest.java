@@ -65,4 +65,12 @@ class ProfitCalculatorTest {
         assertEquals(d("0.00"), e.fee());
         assertEquals(d("17.00"), e.profit());
     }
+
+    @Test
+    void discogsUsesTheNinePercentFeeWithNoFlatFee() {
+        // fee = 0.09 * (30 + 5.50) = 3.195 -> 3.20; profit = 35.50 - 3.195 - 5.50 - 1.00 - 10 = 15.805 -> 15.81
+        ProfitEstimate e = new ProfitCalculator(ProfitSettings.discogs(d("5.50"))).estimate(d("30.00"), d("10.00"));
+        assertEquals(d("3.20"), e.fee());
+        assertEquals(d("15.81"), e.profit());
+    }
 }
