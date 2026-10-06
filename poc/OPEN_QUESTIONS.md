@@ -20,6 +20,13 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Still open: a full-length barcode with one wrong digit is still a mismatch (score drop 0.86 to 0.29 on the replay). Decide after real photos show how often barcodes are misread.
 - Still open: a single candidate with no price comes out CONFIDENT by design (the id is confident; price is reported separately). Price reliability is unchecked until `ebay_sold_avg` exists.
 
+## Ideas (not planned, user raised 2026-10-05)
+- Identification as a small paid service: someone digging through records wants the right Discogs release fast, and Discogs navigation is slow. The user's framing: first a private tool that helps them, a way to learn Claude Code, and possibly a product; Discogs is an old site and might want to help with something useful.
+- Check before any effort: the Discogs API terms of use (marketplace data is non-commercial only; do not store Discogs content). Whether charging for a service built on their data is allowed has NOT been checked. Also unchecked: what Discogs' own app already does.
+- The POC does not test this use case. In a store there are one or two photos of a cover or barcode on a phone, not up to 11 photos with runouts, so accuracy and cost per lookup would differ. Only one record is measured so far.
+- AI cost per lookup would be small, but usage caps matter (see the cost-control note below). Accounts, billing and support are a different project from a personal tool.
+- Decide after the 10-record test shows whether identification works at all.
+
 ## Later (real app)
 - Cost control for uploaded photos that never become listings: vision calls should run only on an explicit user action, with a per-day or per-batch budget, and every call logged with its cost in the event log. The POC only has a photo cap per record (`POC_MAX_PHOTOS`, default 11) and the vision cache.
 
