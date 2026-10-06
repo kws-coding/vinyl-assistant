@@ -3,7 +3,9 @@
 Things that are guessed, untested, or not confirmed from official docs. Remove an item when it is settled.
 
 ## Decisions waiting on the user
-- Numeric pass/fail thresholds for the full run (propose first, user approves before the run).
+- Numeric pass/fail thresholds for the full run: drafted in `THRESHOLDS.md` (2026-10-05). User set the $25 high-value cutoff and the 10-minute target. Final approval of the rest is still needed before the run.
+- Escalation limit (`Thresholds.riskLimit`, now a flat $5) vs the $25 test cutoff. Handle later, after Wednesday's run: replay the recorded gaps at several limits and pick from data. Consider a percentage-based rule (for example the larger of $5 or 15% of price), since a flat $5 means very different things at $10 and at $100.
+- Report columns for `discogs_touches` and `annoyance` (bar 8) are not added yet.
 - Real single-LP postage cost (no default in `ProfitSettings`; tests use a made-up 4.50).
 - Whether the AI may suggest a condition grade. CLAUDE.md currently says the AI never sets or outputs a grade. User was open to "suggest, user confirms or overrides" as a future feature; CLAUDE.md would need a deliberate edit.
 
