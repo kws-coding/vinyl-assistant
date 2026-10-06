@@ -80,7 +80,7 @@ public class Shortlist {
         section(out, "country", facts.countries());
         section(out, "format", facts.formats());
         section(out, "runout / matrix", facts.matrices());
-        out.append(String.format("%nSearch stage: %s, %d fetched, %d plausible (release id order, no scores, no top pick)%n",
+        out.append(String.format("%nSearch stage: %s, %d fetched, %d shown (release id order, no scores, no top pick)%n",
                 stage, fetched, shortlist.size()));
         if (shortlist.isEmpty()) {
             out.append("No plausible release. Look this one up by hand, or add a barcode, catalog number or runout photo.\n");
