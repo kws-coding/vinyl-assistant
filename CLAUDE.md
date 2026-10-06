@@ -7,7 +7,7 @@ Personal tool for one user (a Java developer with ten years of experience) to li
 - AI handles ambiguity and language: reading photos, extracting text, drafting titles and descriptions.
 - Code handles correctness: confidence scoring, comp selection, price and profit math, API calls, state, event log.
 - The human confirms consequential decisions: condition grades, ambiguous pressings, conflicting sales, and publishing.
-- The AI never sets the condition grade. The user does.
+- The AI may suggest a condition grade from photos, with the observed defects behind it. The user confirms or overrides every grade, and the user's grade is the one used for pricing and the listing. The suggestion is made blind to the user's own grade. (Changed 2026-10-05 at the user's direction; the earlier rule was that the AI never sets the grade. If the suggestions prove poor, revisit.)
 - No invented facts. Every extracted value keeps the raw text it came from. "Not visible" is an allowed answer.
 - Confidence is computed in code from per-identifier evidence (match, mismatch, missing). Never ask the model for a percentage.
 - Escalate by value at risk: the price gap between plausible candidates, weighted by match.
@@ -50,15 +50,15 @@ Do NOT rely on file names or photo order. In real use the user uploads unnamed p
 6. Price the chosen release from Discogs data, filtered to the user's condition grade if the API allows. Compute a profit estimate.
 7. Write one report row, and log every API call with its AI cost.
 
-### Condition experiment (observations only)
+### Condition experiment (observations and a suggested grade)
 
 Run after identification works, on a handful of records for which the user also took photos of each side of the vinyl surface under a lamp, plus sleeve photos.
 
 - The model returns observed defects only, each with the photo it came from, the location and a confidence in words: sleeve (ring wear, seam splits, writing, corner dings, foxing, stains) and vinyl surface (visible scuffs, scratches, marks).
-- It must never output a grade (M, NM, VG+ and so on) and never claim anything about how the record plays. Warps, surface noise and groove wear cannot be seen in photos. It states that limit in the report.
+- It also suggests a media grade and a sleeve grade on the Discogs scale (M, NM, VG+, VG, G+, G, F, P), each tied to the observations behind it, with a confidence in words. "Cannot tell" is an allowed answer. It never sees the user's grade, notes or `known_defects`. It never claims anything about how the record plays. Warps, surface noise and groove wear cannot be seen in photos, so the grade is visual only, and it states that limit in the report.
 - It also drafts consistent condition-note wording from the observations, within Discogs' 500-character, no-HTML limit, using only observed facts and the user's own notes.
-- Flag disagreements: where the observations suggest the user's grade may be too generous, say so, and let the user decide.
-- Score it against the user's `known_defects` and grades: defects found, defects missed, false alarms, and how often a flag would have changed the user's grade.
+- Flag disagreements: where the suggested grade differs from the user's, in either direction, say so and let the user decide. The user's grade is always the one used.
+- Score it against the user's `known_defects` and grades: defects found, defects missed, false alarms, how often the suggested grade matches the user's or is within one step, which direction it errs, and how often a flag would have changed the user's grade.
 
 ### Measure
 
