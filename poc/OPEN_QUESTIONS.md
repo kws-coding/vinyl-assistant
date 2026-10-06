@@ -25,6 +25,7 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Check before any effort: the Discogs API terms of use (marketplace data is non-commercial only; do not store Discogs content). Whether charging for a service built on their data is allowed has NOT been checked. Also unchecked: what Discogs' own app already does.
 - The POC does not test this use case. In a store there are one or two photos of a cover or barcode on a phone, not up to 11 photos with runouts, so accuracy and cost per lookup would differ. Only one record is measured so far.
 - AI cost per lookup would be small, but usage caps matter (see the cost-control note below). Accounts, billing and support are a different project from a personal tool.
+- Guided photo capture like a bank's check deposit (frame, lighting and focus checks, then a yes or no) for the person digging: raised 2026-10-05. Assessment: the capture checks are technically feasible and cheap (on-device), and would also stop paying for unusable photos. The hard parts are speed in a store, shrinkwrap glare, runout etchings that need raking light, and that the planned app is desktop-first on localhost, not a phone app. A local barcode scan could identify records that have a barcode with no AI at all. Library and API options were not checked. Two free experiments are listed in `WEDNESDAY.md`.
 - Decide after the 10-record test shows whether identification works at all.
 
 ## Later (real app)
