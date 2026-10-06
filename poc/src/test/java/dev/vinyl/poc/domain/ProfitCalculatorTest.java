@@ -73,4 +73,13 @@ class ProfitCalculatorTest {
         assertEquals(d("3.20"), e.fee());
         assertEquals(d("15.81"), e.profit());
     }
+
+    @Test
+    void netBeforeCostNeedsNoPurchasePriceAndProfitIsNetMinusCost() {
+        ProfitCalculator calc = new ProfitCalculator(ProfitSettings.discogs(d("5.50")));
+        // net = 30 + 5.50 - 3.195 - 5.50 - 1.00 = 25.805 -> 25.81
+        assertEquals(d("25.81"), calc.netBeforeCost(d("30.00")));
+        assertEquals(d("15.81"), calc.estimate(d("30.00"), d("10.00")).profit());
+        assertEquals(calc.netBeforeCost(d("30.00")).subtract(d("10.00")), calc.estimate(d("30.00"), d("10.00")).profit());
+    }
 }

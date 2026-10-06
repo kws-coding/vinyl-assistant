@@ -104,6 +104,12 @@ public class RecordPipeline {
 
         Double topPrice = priced.stream().filter(p -> p.candidate().releaseId().equals(decision.topReleaseId()))
                 .map(PricedCandidate::price).findFirst().orElse(null);
+        if (topPrice != null && settings.postageIsPlaceholder()) {
+            notes.add("net and profit use placeholder postage (POC_POSTAGE not set)");
+        }
+        String netDiscogs = topPrice == null ? ""
+                : new ProfitCalculator(settings.discogsProfit()).netBeforeCost(BigDecimal.valueOf(topPrice))
+                        .toPlainString();
         String profitDiscogs = "";
         String profitEbay = "";
         if (topPrice != null && rec.costBasis() != null) {
@@ -112,11 +118,8 @@ public class RecordPipeline {
                     .profit().toPlainString();
             profitEbay = new ProfitCalculator(settings.ebayProfit()).estimate(price, rec.costBasis())
                     .profit().toPlainString();
-            if (settings.postageIsPlaceholder()) {
-                notes.add("profit uses placeholder postage (POC_POSTAGE not set)");
-            }
         } else if (topPrice != null) {
-            notes.add("profit not computed: cost_basis blank");
+            notes.add("profit not computed: cost_basis blank (net before cost is shown)");
         }
 
         String pricingError = "";
@@ -131,7 +134,7 @@ public class RecordPipeline {
                 String.format("%.2f", topScore), String.format("%.2f", decision.risk().amount()),
                 nz(decision.risk().rivalReleaseId()), found.stage(), String.valueOf(found.releases().size()),
                 String.valueOf(read.photos().size()), missingRoles(read), topPrice == null ? "" : String.format("%.2f", topPrice),
-                priceMissing(decision, topPrice), profitDiscogs, profitEbay,
+                priceMissing(decision, topPrice), netDiscogs, profitDiscogs, profitEbay,
                 rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(),
                 rec.ebaySoldHigh() == null ? "" : rec.ebaySoldHigh().toPlainString(), rec.ebayMatch(),
                 ebayAlert(topPrice, rec), pricingError,

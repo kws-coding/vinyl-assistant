@@ -5,7 +5,8 @@ import java.math.RoundingMode;
 
 /**
  * fee    = rate * (item + shipping_charged + tax) + per_order
- * profit = item + shipping_charged - fee - postage - supplies - cost_basis
+ * net    = item + shipping_charged - fee - postage - supplies   (what a sale leaves before the cost of the record)
+ * profit = net - cost_basis
  * Intermediate values are exact; only the reported amounts are rounded to cents.
  */
 public class ProfitCalculator {
@@ -17,12 +18,27 @@ public class ProfitCalculator {
     }
 
     public ProfitEstimate estimate(BigDecimal item, BigDecimal costBasis) {
-        BigDecimal shipping = settings.shippingCharged();
-        BigDecimal tax = settings.taxRate().multiply(item.add(shipping));
-        BigDecimal fee = settings.feeRate().multiply(item.add(shipping).add(tax)).add(settings.perOrderFee());
-        BigDecimal profit = item.add(shipping).subtract(fee).subtract(settings.postage())
-                .subtract(settings.supplies()).subtract(costBasis);
-        return new ProfitEstimate(cents(item), cents(tax), cents(fee), cents(profit));
+        BigDecimal tax = tax(item);
+        return new ProfitEstimate(cents(item), cents(tax), cents(fee(item)), cents(net(item).subtract(costBasis)));
+    }
+
+    /** What a sale leaves before the cost of the record. Needs no purchase price. */
+    public BigDecimal netBeforeCost(BigDecimal item) {
+        return cents(net(item));
+    }
+
+    private BigDecimal tax(BigDecimal item) {
+        return settings.taxRate().multiply(item.add(settings.shippingCharged()));
+    }
+
+    private BigDecimal fee(BigDecimal item) {
+        BigDecimal base = item.add(settings.shippingCharged()).add(tax(item));
+        return settings.feeRate().multiply(base).add(settings.perOrderFee());
+    }
+
+    private BigDecimal net(BigDecimal item) {
+        return item.add(settings.shippingCharged()).subtract(fee(item)).subtract(settings.postage())
+                .subtract(settings.supplies());
     }
 
     private static BigDecimal cents(BigDecimal v) {

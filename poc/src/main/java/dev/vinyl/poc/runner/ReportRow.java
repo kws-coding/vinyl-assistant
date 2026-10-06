@@ -6,7 +6,7 @@ import java.util.List;
 public record ReportRow(String recordId, String bucket, String mediaGrade, String decision, String topReleaseId,
                         String truthReleaseId, String outcome, String topScore, String valueAtRisk,
                         String rivalReleaseId, String searchStage, String candidates, String photos,
-                        String missingRoles, String suggestedPriceUsd, String priceMissing, String profitDiscogsUsd,
+                        String missingRoles, String suggestedPriceUsd, String priceMissing, String netBeforeCostDiscogsUsd, String profitDiscogsUsd,
                         String profitEbayUsd,
                         String ebaySoldAvg, String ebaySoldHigh, String ebayMatch, String ebayAlert,
                         String pricingErrorUsd, String visionCached, String aiCostUsd,
@@ -14,14 +14,14 @@ public record ReportRow(String recordId, String bucket, String mediaGrade, Strin
 
     static final List<String> HEADER = List.of("record_id", "bucket", "media_grade", "decision", "top_release_id",
             "truth_release_id", "outcome", "top_score", "value_at_risk", "rival_release_id", "search_stage",
-            "candidates", "photos", "missing_roles", "suggested_price_usd", "price_missing", "profit_discogs_usd", "profit_ebay_usd", "ebay_sold_avg", "ebay_sold_high", "ebay_match", "ebay_alert",
+            "candidates", "photos", "missing_roles", "suggested_price_usd", "price_missing", "net_before_cost_discogs_usd", "profit_discogs_usd", "profit_ebay_usd", "ebay_sold_avg", "ebay_sold_high", "ebay_match", "ebay_alert",
             "pricing_error_usd", "vision_cached", "ai_cost_usd", "input_tokens", "output_tokens", "reason",
             "notes", "human_minutes");
 
     List<String> fields() {
         return List.of(recordId, bucket, mediaGrade, decision, topReleaseId, truthReleaseId, outcome, topScore,
                 valueAtRisk, rivalReleaseId, searchStage, candidates, photos, missingRoles, suggestedPriceUsd,
-                priceMissing, profitDiscogsUsd, profitEbayUsd, ebaySoldAvg, ebaySoldHigh, ebayMatch, ebayAlert, pricingErrorUsd, visionCached, aiCostUsd, inputTokens, outputTokens,
+                priceMissing, netBeforeCostDiscogsUsd, profitDiscogsUsd, profitEbayUsd, ebaySoldAvg, ebaySoldHigh, ebayMatch, ebayAlert, pricingErrorUsd, visionCached, aiCostUsd, inputTokens, outputTokens,
                 reason, notes, "");
     }
 }
