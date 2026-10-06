@@ -25,7 +25,7 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 
 ## Unverified facts
 - eBay fee model (13.6% of item + shipping + tax, plus $0.40) is a placeholder from the brief. Tax rate defaults to 0.
-- Discogs fee model is 9% of (item + shipping + tax), no flat fee (`ProfitSettings.discogs`). Only the 9% comes from the brief. Unverified: whether the fee applies to shipping, and whether payment processing fees come on top. User says Discogs matters more than eBay for the POC; the report shows profit for both (`profit_discogs_usd`, `profit_ebay_usd`), at the same Discogs suggested price and the same $5.50 shipping charged.
+- Discogs fee model is 9% of (item + shipping + tax), no flat fee (`ProfitSettings.discogs`). Only the 9% comes from the brief. The user says the fee applies to both the item price and the shipping charged (user statement, 2026-10-05; not checked against Discogs docs), which matches the formula. Unverified: whether payment processing fees come on top. User says Discogs matters more than eBay for the POC; the report shows profit for both (`profit_discogs_usd`, `profit_ebay_usd`), at the same Discogs suggested price and the same $5.50 shipping charged.
 - JUnit 6.1.3 and Jackson 3.2.3 coordinates came from Maven Central metadata. The JUnit docs pages did not show them. Jackson 3 notes were read from the official wiki. Both build and run.
 - No Discogs sales-history endpoint found. Only `/marketplace/sales/{id}`, `/releases/{id}/sales`, `/marketplace/history/{id}` (all 404) and `/releases/{id}/stats` (returns only `is_offensive`) were tried.
 - Price suggestions return a price per grade. Only checked on two releases. Whether they depend on the seller account is unknown.
