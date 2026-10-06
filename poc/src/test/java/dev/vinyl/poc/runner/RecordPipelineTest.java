@@ -60,10 +60,10 @@ class RecordPipelineTest {
     void theEbayAlertUsesTheTopPriceAndNeverNeedsEbayData() {
         // made-up values
         RecordInput withHigh = new RecordInput("1", "", "VG+", "", "", null, "", null, new java.math.BigDecimal("90"),
-                "same", "");
+                "same", "", "");
         assertTrue(RecordPipeline.ebayAlert(30.0, withHigh).contains("3.0x"));
         assertEquals("", RecordPipeline.ebayAlert(null, withHigh));
-        RecordInput none = new RecordInput("1", "", "VG+", "", "", null, "", null, null, "", "");
+        RecordInput none = new RecordInput("1", "", "VG+", "", "", null, "", null, null, "", "", "");
         assertEquals("", RecordPipeline.ebayAlert(30.0, none));
     }
 }

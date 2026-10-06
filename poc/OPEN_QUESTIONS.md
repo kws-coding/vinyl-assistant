@@ -73,11 +73,12 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Lock grades in `records.csv` (and commit) before running, so the model and the user do not influence each other.
 - Outputs: `reports/condition-*.csv` (suggested vs your grade, direction and steps, flag, `user_decision` to fill in as keep or change) and `reports/condition-review-*.csv` (mark each observed defect real, false_alarm or unsure, and each known defect found or missed). `ConditionMain --summary` counts agreement, direction, false alarms, misses and how often a flag would change your grade.
 - Untested on real photos. The prompt, the schema and the grade scale wording are first drafts; the model's own idea of the Discogs scale is unverified. Cost per record is an extrapolation (about $0.03 to $0.06), not measured.
-- No pass/fail bar has been proposed for this experiment. Propose one before the run, as with the identification bars.
-- The drafted condition note (500 characters, no HTML, observed facts and the user's notes only) is not built.
+- Draft bars C1 to C7 are in `THRESHOLDS.md` and in `ConditionSummary` (not approved; keep the constants in step).
+- The Discogs comment is drafted by `ConditionMain --notes` from a template in `ConditionNote`, not by the model: reviewed defects, "none seen in photos" only when both sides were photographed, and the user's own `listing_notes` column. It enforces 500 characters and no HTML. A model-polished version is not built; the template is plainer but consistent and cannot invent anything.
+- Each run of `ConditionMain` writes a NEW blank review sheet, so the one you marked is not the newest. Pass `--review FILE` to `--notes` and `--summary`. Easy to get wrong; consider overwriting only blank sheets.
+- A known defect that cannot be seen in a photo (for example "plays quiet") should be marked `not_visible` in the review sheet so it does not count as a miss.
 - The flag rule is simply "suggested grade differs from yours", in either direction, by any number of steps. Whether one step apart should count as a flag is undecided.
 
 ## Not built yet
 - Failure taxonomy (categories of failure); worth doing once there is real data.
 - Two-step vision variant (cheap role classification, then extraction per role).
-- Condition note drafting (see above).

@@ -19,6 +19,10 @@ import java.util.stream.Stream;
 /**
  * Throwaway. The condition experiment. Usage: ConditionMain [--root DIR] [--only ID] [--refresh]
  *   ConditionMain --summary [--root DIR] [--report FILE] [--review FILE]
+ *   ConditionMain --notes [--root DIR] [--only ID] [--review FILE]
+ * --notes drafts the Discogs comment (500 characters, no HTML) for each record from the cached result, your marked
+ * review sheet and the listing_notes column of records.csv. It costs nothing. Each run of the main mode writes a
+ * NEW blank review sheet, so pass --review to point at the one you marked.
  * Reads photos from records/NNN/condition/ (vinyl surface under a lamp, sleeve). The model sees only those photos,
  * never your grade, notes or known defects, and suggests a visual-only grade that you can override. Lock your grades
  * in records.csv before running so neither side influences the other. POC_MAX_CONDITION_PHOTOS (default 8) caps
@@ -32,6 +36,7 @@ public class ConditionMain {
         String only = null;
         boolean refresh = false;
         boolean summary = false;
+        boolean notes = false;
         Path reportFile = null;
         Path reviewFile = null;
         for (int i = 0; i < args.length; i++) {
@@ -40,6 +45,7 @@ public class ConditionMain {
                 case "--only" -> only = args[++i];
                 case "--refresh" -> refresh = true;
                 case "--summary" -> summary = true;
+                case "--notes" -> notes = true;
                 case "--report" -> reportFile = Path.of(args[++i]);
                 case "--review" -> reviewFile = Path.of(args[++i]);
                 default -> throw new IllegalArgumentException("Unknown argument: " + args[i]);
@@ -47,6 +53,10 @@ public class ConditionMain {
         }
         if (summary) {
             summarise(root, reportFile, reviewFile);
+            return;
+        }
+        if (notes) {
+            draftNotes(root, only, reviewFile);
             return;
         }
 
@@ -126,6 +136,37 @@ public class ConditionMain {
         Path review = reviewFile != null ? reviewFile : newest(root.resolve("reports"), "condition-review-.*\\.csv");
         System.out.println("Report: " + report + "\nReview: " + review);
         System.out.print(ConditionSummary.render(read(report), read(review)));
+    }
+
+    private static void draftNotes(Path root, String only, Path reviewFile) throws IOException {
+        Path review = reviewFile != null ? reviewFile : newest(root.resolve("reports"), "condition-review-.*\\.csv");
+        System.out.println("Using review sheet: " + review);
+        List<Map<String, String>> reviewRows = read(review);
+        ConditionCache cache = new ConditionCache(root.resolve("out/condition-cache"));
+        List<List<String>> out = new ArrayList<>();
+        for (RecordInput rec : RecordsCsv.read(root.resolve("records.csv"))) {
+            if (only != null && !only.equals(rec.id())) {
+                continue;
+            }
+            ConditionResult result = cache.get(rec.id()).orElse(null);
+            if (result == null) {
+                System.out.println(rec.id() + "  no cached condition result, skipped");
+                continue;
+            }
+            List<Map<String, String>> mine = reviewRows.stream()
+                    .filter(r -> rec.id().equals(r.getOrDefault("record_id", "").trim())).toList();
+            dev.vinyl.poc.domain.ConditionNote.Draft d = ConditionNotes.draft(rec, result, mine);
+            System.out.printf("%n%s  (%d characters, %s)%n  %s%n", rec.id(), d.text().length(),
+                    d.valid() ? "valid" : "NOT VALID", d.text());
+            d.warnings().forEach(w -> System.out.println("  ! " + w));
+            out.add(List.of(rec.id(), d.text(), String.valueOf(d.text().length()), String.valueOf(d.valid()),
+                    String.join("; ", d.warnings())));
+        }
+        String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        Path file = root.resolve("reports/condition-notes-" + stamp + ".csv");
+        write(file, List.of("record_id", "note", "characters", "valid", "warnings"), out);
+        System.out.println("\nWritten: " + file);
+        System.out.println("Drafts only: read them, and use your own grade. Nothing is posted anywhere.");
     }
 
     private static Path newest(Path dir, String regex) throws IOException {

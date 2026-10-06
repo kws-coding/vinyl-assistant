@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Reads records.csv: id,bucket,media_grade,sleeve_grade,known_defects,cost_basis,truth_release_id,ebay_sold_avg,notes; optional: ebay_sold_high, ebay_match (same, unsure, no) */
+/** Reads records.csv: id,bucket,media_grade,sleeve_grade,known_defects,cost_basis,truth_release_id,ebay_sold_avg,notes; optional: ebay_sold_high, ebay_match (same, unsure, no), listing_notes */
 public final class RecordsCsv {
 
     private RecordsCsv() {
@@ -36,7 +36,7 @@ public final class RecordsCsv {
                     number(id, "cost_basis", get(r, col, "cost_basis")), get(r, col, "truth_release_id"),
                     number(id, "ebay_sold_avg", get(r, col, "ebay_sold_avg")),
                     number(id, "ebay_sold_high", get(r, col, "ebay_sold_high")),
-                    match(id, get(r, col, "ebay_match")), get(r, col, "notes")));
+                    match(id, get(r, col, "ebay_match")), get(r, col, "notes"), get(r, col, "listing_notes")));
         }
         return out;
     }
