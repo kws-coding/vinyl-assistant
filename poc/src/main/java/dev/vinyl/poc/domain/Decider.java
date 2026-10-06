@@ -6,7 +6,9 @@ import java.util.List;
 /**
  * Decides whether a record is confidently identified, needs the user's call, or needs runout photos.
  * Confident requires a high score, no mismatch, and value at risk within the limit.
- * Missing matrix evidence with an open question points at runout photos; anything else open goes to the user.
+ * Runout photos are asked for only when the release is otherwise pinned down (a barcode or catalog number
+ * matched, nothing mismatched) and only the matrix is missing. A mismatch, or no barcode or catalog number
+ * read at all, goes to the user with a reason that says what to look at.
  */
 public class Decider {
 
@@ -33,7 +35,9 @@ public class Decider {
         }
 
         String why = describe(t, risk);
-        Decision decision = t.isMissing(Identifier.MATRIX) ? Decision.NEEDS_RUNOUT_PHOTOS : Decision.NEEDS_USER_CALL;
+        boolean pinnedDown = t.hasMatch(Identifier.BARCODE) || t.hasMatch(Identifier.CATALOG_NUMBER);
+        boolean runoutsWouldHelp = t.isMissing(Identifier.MATRIX) && !t.hasMismatch() && pinnedDown;
+        Decision decision = runoutsWouldHelp ? Decision.NEEDS_RUNOUT_PHOTOS : Decision.NEEDS_USER_CALL;
         return new DecisionResult(decision, t.releaseId(), risk, why);
     }
 
@@ -53,6 +57,9 @@ public class Decider {
         }
         if (top.isMissing(Identifier.MATRIX)) {
             sb.append("No matrix/runout evidence. ");
+        }
+        if (!top.hasMatch(Identifier.BARCODE) && !top.hasMatch(Identifier.CATALOG_NUMBER)) {
+            sb.append("No barcode or catalog number matched: photograph the barcode or catalog number. ");
         }
         return sb.toString().trim();
     }

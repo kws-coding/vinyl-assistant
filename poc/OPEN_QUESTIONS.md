@@ -15,10 +15,9 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - A mismatch subtracts its weight and cancels a match. Barcode or matrix mismatch may need to disqualify outright.
 - Value at risk uses the largest weighted gap, not the sum across rivals.
 - Two close pressings with a small price gap come out confident. A lower risk limit may be needed.
-- Found in the 2026-10-05 test audit (read from the code, not covered by tests, so not yet confirmed as a problem):
-  - `Decider` picks NEEDS_RUNOUT_PHOTOS whenever the top candidate has no matrix evidence, even when the real reason is a mismatch on another identifier. Runout photos would not fix that.
-  - A single candidate with no price comes out CONFIDENT, because value at risk only looks at rivals. The profit step then has nothing to price.
-  - A partial barcode read (7+ digits) is compared for exact equality, so a truncated read of the right barcode counts as a MISMATCH, not a partial match.
+- Settled 2026-10-05 after the test audit: `Decider` now asks for runout photos only when a barcode or catalog number matched, nothing mismatched, and only the matrix is missing; otherwise it goes to the user and the reason says what to photograph. A missing price is its own report column (`price_missing`), not a decision change. A truncated barcode read (a piece of a listed barcode, 7+ digits) now counts as missing evidence instead of a mismatch.
+- Still open: a full-length barcode with one wrong digit is still a mismatch (score drop 0.86 to 0.29 on the replay). Decide after real photos show how often barcodes are misread.
+- Still open: a single candidate with no price comes out CONFIDENT by design (the id is confident; price is reported separately). Price reliability is unchecked until `ebay_sold_avg` exists.
 
 ## Unverified facts
 - eBay fee model (13.6% of item + shipping + tax, plus $0.40) is a placeholder from the brief. Tax rate defaults to 0.

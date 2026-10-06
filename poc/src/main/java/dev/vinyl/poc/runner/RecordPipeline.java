@@ -124,11 +124,19 @@ public class RecordPipeline {
                 String.format("%.2f", topScore), String.format("%.2f", decision.risk().amount()),
                 nz(decision.risk().rivalReleaseId()), found.stage(), String.valueOf(found.releases().size()),
                 String.valueOf(read.photos().size()), missingRoles(read), topPrice == null ? "" : String.format("%.2f", topPrice),
-                profit, rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(), pricingError,
+                priceMissing(decision, topPrice), profit, rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(), pricingError,
                 String.valueOf(cached), cached ? "0" : read.call().costUsd().toPlainString(),
                 cached ? "0" : String.valueOf(read.call().inputTokens()),
                 cached ? "0" : String.valueOf(read.call().outputTokens()), decision.reason(),
                 String.join("; ", notes));
+    }
+
+    /** "true" when there is a top release but no price for it at the user's grade; blank when there is no top release. */
+    static String priceMissing(DecisionResult d, Double topPrice) {
+        if (d.topReleaseId() == null) {
+            return "";
+        }
+        return String.valueOf(topPrice == null);
     }
 
     /** correct / flagged_correct / flagged_incorrect / WRONG_UNFLAGGED, or blank without an answer key. */

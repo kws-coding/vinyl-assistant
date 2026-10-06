@@ -161,4 +161,31 @@ class DeciderTest {
                 IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.mismatch(LABEL, "x"),
                 IdentifierEvidence.match(MATRIX, "x")))).reason().contains("mismatch"));
     }
+
+    @Test
+    void aMismatchWithNoRunoutsGoesToTheUserNotToRunoutPhotos() {
+        DecisionResult r = decider.decide(List.of(priced("A", 20.0,
+                IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.mismatch(LABEL, "x"),
+                IdentifierEvidence.missing(MATRIX))));
+        assertEquals(Decision.NEEDS_USER_CALL, r.decision());
+        assertTrue(r.reason().contains("mismatch"));
+    }
+
+    @Test
+    void noBarcodeOrCatalogMatchGoesToTheUserWithAHintToPhotographThem() {
+        DecisionResult r = decider.decide(List.of(priced("A", 20.0,
+                IdentifierEvidence.match(LABEL, "x"), IdentifierEvidence.match(COUNTRY, "x"),
+                IdentifierEvidence.missing(BARCODE), IdentifierEvidence.missing(CATALOG_NUMBER),
+                IdentifierEvidence.missing(MATRIX))));
+        assertEquals(Decision.NEEDS_USER_CALL, r.decision());
+        assertTrue(r.reason().contains("photograph the barcode or catalog number"));
+    }
+
+    @Test
+    void aCatalogNumberMatchAloneIsEnoughToAskForRunouts() {
+        DecisionResult r = decider.decide(List.of(priced("A", 20.0,
+                IdentifierEvidence.match(CATALOG_NUMBER, "x"), IdentifierEvidence.match(LABEL, "x"),
+                IdentifierEvidence.missing(BARCODE), IdentifierEvidence.missing(MATRIX))));
+        assertEquals(Decision.NEEDS_RUNOUT_PHOTOS, r.decision());
+    }
 }

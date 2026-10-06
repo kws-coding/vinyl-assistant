@@ -6,20 +6,20 @@ import java.util.List;
 public record ReportRow(String recordId, String bucket, String mediaGrade, String decision, String topReleaseId,
                         String truthReleaseId, String outcome, String topScore, String valueAtRisk,
                         String rivalReleaseId, String searchStage, String candidates, String photos,
-                        String missingRoles, String suggestedPriceUsd, String profitEstimateUsd,
+                        String missingRoles, String suggestedPriceUsd, String priceMissing, String profitEstimateUsd,
                         String ebaySoldAvg, String pricingErrorUsd, String visionCached, String aiCostUsd,
                         String inputTokens, String outputTokens, String reason, String notes) {
 
     static final List<String> HEADER = List.of("record_id", "bucket", "media_grade", "decision", "top_release_id",
             "truth_release_id", "outcome", "top_score", "value_at_risk", "rival_release_id", "search_stage",
-            "candidates", "photos", "missing_roles", "suggested_price_usd", "profit_estimate_usd", "ebay_sold_avg",
+            "candidates", "photos", "missing_roles", "suggested_price_usd", "price_missing", "profit_estimate_usd", "ebay_sold_avg",
             "pricing_error_usd", "vision_cached", "ai_cost_usd", "input_tokens", "output_tokens", "reason",
             "notes", "human_minutes");
 
     List<String> fields() {
         return List.of(recordId, bucket, mediaGrade, decision, topReleaseId, truthReleaseId, outcome, topScore,
                 valueAtRisk, rivalReleaseId, searchStage, candidates, photos, missingRoles, suggestedPriceUsd,
-                profitEstimateUsd, ebaySoldAvg, pricingErrorUsd, visionCached, aiCostUsd, inputTokens, outputTokens,
+                priceMissing, profitEstimateUsd, ebaySoldAvg, pricingErrorUsd, visionCached, aiCostUsd, inputTokens, outputTokens,
                 reason, notes, "");
     }
 }

@@ -13,6 +13,10 @@ public record ScoredCandidate(String releaseId, double score, List<IdentifierEvi
         return evidence.stream().anyMatch(e -> e.outcome() == Outcome.MISMATCH);
     }
 
+    public boolean hasMatch(Identifier identifier) {
+        return evidence.stream().anyMatch(e -> e.identifier() == identifier && e.outcome() == Outcome.MATCH);
+    }
+
     public boolean isMissing(Identifier identifier) {
         return evidence.stream().noneMatch(e -> e.identifier() == identifier && e.outcome() != Outcome.MISSING);
     }

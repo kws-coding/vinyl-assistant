@@ -296,4 +296,24 @@ class EvidenceBuilderTest {
     void aPunctuationOnlyCountryReadIsNotAMismatch() {
         assertEquals(Outcome.MISSING, one(COUNTRY, country("."), inCountry("Germany")).outcome());
     }
+
+    @Test
+    void aTruncatedBarcodeReadNeitherConfirmsNorContradicts() {
+        ExtractedFacts photo = facts(List.of(f("8122796", "8122796")), List.of(), List.of(), List.of(), List.of(), List.of());
+        assertEquals(Outcome.MISSING, one(BARCODE, photo, withBarcodes("081227966409")).outcome());
+        // the same fragment also fits a sibling pressing that shares the start of the number
+        assertEquals(Outcome.MISSING, one(BARCODE, photo, withBarcodes("081227964382")).outcome());
+    }
+
+    @Test
+    void aSevenDigitReadThatIsNotAPieceOfTheListedBarcodeStaysAMismatch() {
+        ExtractedFacts photo = facts(List.of(f("1227966", "1227966")), List.of(), List.of(), List.of(), List.of(), List.of());
+        assertEquals(Outcome.MISMATCH, one(BARCODE, photo, withBarcodes("081227964382")).outcome());
+    }
+
+    @Test
+    void aFullLengthBarcodeWithOneWrongDigitStaysAMismatch() {
+        ExtractedFacts photo = facts(List.of(f("081227966400", "0 81227 96640 0")), List.of(), List.of(), List.of(), List.of(), List.of());
+        assertEquals(Outcome.MISMATCH, one(BARCODE, photo, withBarcodes("081227966409")).outcome());
+    }
 }

@@ -35,8 +35,18 @@ public class EvidenceBuilder {
                 .toList();
         List<Fact> observed = facts.barcodes().stream()
                 .filter(f -> digitsWithoutLeadingZeros(f.value()).length() >= MIN_BARCODE_DIGITS - 1).toList();
-        return compare(Identifier.BARCODE, observed, candidates,
+        IdentifierEvidence result = compare(Identifier.BARCODE, observed, candidates,
                 (o, c) -> digitsWithoutLeadingZeros(o).equals(c));
+        if (result.outcome() == Outcome.MISMATCH && isFragmentOfListed(observed, candidates)) {
+            return IdentifierEvidence.missing(Identifier.BARCODE);
+        }
+        return result;
+    }
+
+    /** A truncated read is a piece of the real barcode, so it neither confirms nor contradicts it. */
+    private static boolean isFragmentOfListed(List<Fact> observed, List<String> candidates) {
+        return observed.stream().map(f -> digitsWithoutLeadingZeros(f.value()))
+                .anyMatch(o -> candidates.stream().anyMatch(c -> c.length() > o.length() && c.contains(o)));
     }
 
     private IdentifierEvidence catalogNumber(ExtractedFacts facts, ReleaseInfo r) {
