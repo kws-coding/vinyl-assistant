@@ -23,7 +23,7 @@ Rules for the POC:
 - The script's runner, CSV input and report writer are throwaway.
 - Ask before adding a dependency or framework. Verify current library coordinates and API shapes from official docs before using them.
 
-Secrets: `ANTHROPIC_API_KEY` and `DISCOGS_TOKEN` come from environment variables. Never print them, log them, or commit them.
+Secrets: `VINYL_ANTHROPIC_KEY` and `DISCOGS_TOKEN` come from environment variables. Never print them, log them, or commit them.
 
 ### Input
 

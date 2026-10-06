@@ -52,9 +52,9 @@ public class VisionClient {
     }
 
     public static VisionClient fromEnvironment(VisionConfig config, Consumer<AiCall> listener) {
-        String key = System.getenv("ANTHROPIC_API_KEY");
+        String key = System.getenv("VINYL_ANTHROPIC_KEY");
         if (key == null || key.isBlank()) {
-            throw new VisionException("ANTHROPIC_API_KEY is not set");
+            throw new VisionException("VINYL_ANTHROPIC_KEY is not set");
         }
         return new VisionClient("https://api.anthropic.com", key, config, listener);
     }

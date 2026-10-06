@@ -9,5 +9,5 @@ for f in "$dir"/*.jpg; do n=$((n+1))
   jq -nc --arg n "photo_$n" --rawfile d <(base64 -i "$f" | tr -d '\n') '{type:"text",text:$n},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:$d}}' >> "$parts"
 done
 jq -s --arg model "$model" --arg prompt "$prompt" '{model:$model,max_tokens:8000,messages:[{role:"user",content:(. + [{type:"text",text:$prompt}])}]}' "$parts" > "$dir/request.json"
-curl -sS https://api.anthropic.com/v1/messages -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" -d @"$dir/request.json" > "$dir/response.json"
+curl -sS https://api.anthropic.com/v1/messages -H "x-api-key: $VINYL_ANTHROPIC_KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" -d @"$dir/request.json" > "$dir/response.json"
 jq '{type,error,model,usage,text:(.content[0].text // null)}' "$dir/response.json"
