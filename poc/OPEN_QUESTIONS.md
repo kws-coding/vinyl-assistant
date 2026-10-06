@@ -54,6 +54,14 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Artist, title and year from the photos are not used for evidence yet (only for the later artist and title search).
 - The pipeline test for record 001 uses made-up releases shaped like the real ones, because Discogs terms say not to store Discogs content.
 
+## Measuring (built 2026-10-05, throwaway)
+- `SummaryMain` reads a report CSV and prints per-bucket results, wrong-and-unflagged records with their price gap (`error_gap_usd`), cost, pricing error by `ebay_match`, human effort and photo role accuracy, with the DRAFT bars from `THRESHOLDS.md` hard-coded in `Summary` (keep them in step; they are not approved). Record 001 is excluded by default.
+- Photo role scoring maps `photo_1..N` to the sorted file names in `records/<id>/`, so it breaks if photos are added or removed after the vision call. A count mismatch is reported and the record is skipped. Only tried with a role file built from the model's own answers (a plumbing check, 11 of 11 by construction); real role accuracy is unmeasured.
+- `error_gap_usd` is blank when either price is missing, and the summary then says the gap is unknown and asks for a check on bar 1, not a pass.
+- Failed records (for example over the photo cap) are printed by the runner but are not rows in the report, so the summary cannot count them.
+- Bar 3 is read as the share of records that are not wrong-and-unflagged, per bucket. If you meant something stricter, say so.
+
 ## Not built yet
-- Runner, CSV input, report writer (and the candidate search flow: barcode, then catalog number plus label, then artist and title).
-- Condition experiment.
+- Failure taxonomy (categories of failure); worth doing once there is real data.
+- Two-step vision variant (cheap role classification, then extraction per role).
+- Condition experiment (needs lamp photos).

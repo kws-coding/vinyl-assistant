@@ -128,6 +128,17 @@ public class RecordPipeline {
                     .setScale(2, RoundingMode.HALF_UP).toPlainString();
         }
 
+        // When the pick is wrong, how far apart the two prices are: what a confident mistake would have cost.
+        String errorGap = "";
+        String truth = rec.truthReleaseId();
+        if (topPrice != null && !truth.isEmpty() && decision.topReleaseId() != null
+                && !truth.equals(decision.topReleaseId())) {
+            Double truthPrice = price(truth, rec.mediaGrade(), notes);
+            if (truthPrice != null) {
+                errorGap = String.format("%.2f", Math.abs(topPrice - truthPrice));
+            }
+        }
+
         double topScore = best == null ? 0 : best.score();
         return new ReportRow(rec.id(), rec.bucket(), rec.mediaGrade(), decision.decision().name(),
                 nz(decision.topReleaseId()), rec.truthReleaseId(), outcome(decision, rec.truthReleaseId()),
@@ -137,7 +148,7 @@ public class RecordPipeline {
                 priceMissing(decision, topPrice), netDiscogs, profitDiscogs, profitEbay,
                 rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(),
                 rec.ebaySoldHigh() == null ? "" : rec.ebaySoldHigh().toPlainString(), rec.ebayMatch(),
-                ebayAlert(topPrice, rec), pricingError,
+                ebayAlert(topPrice, rec), pricingError, errorGap,
                 String.valueOf(cached), cached ? "0" : read.call().costUsd().toPlainString(),
                 cached ? "0" : String.valueOf(read.call().inputTokens()),
                 cached ? "0" : String.valueOf(read.call().outputTokens()), decision.reason(),
