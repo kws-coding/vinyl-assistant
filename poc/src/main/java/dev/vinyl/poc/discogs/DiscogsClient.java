@@ -47,6 +47,10 @@ public class DiscogsClient {
         return search("barcode", barcode);
     }
 
+    public SearchResponse searchByCatno(String catno) {
+        return search("catno", catno);
+    }
+
     public SearchResponse searchByCatnoAndLabel(String catno, String label) {
         return search("catno", catno, "label", label);
     }

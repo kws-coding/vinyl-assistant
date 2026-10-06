@@ -1,0 +1,185 @@
+package dev.vinyl.poc.runner;
+
+import dev.vinyl.poc.discogs.DiscogsClient;
+import dev.vinyl.poc.discogs.DiscogsException;
+import dev.vinyl.poc.discogs.GradeMapper;
+import dev.vinyl.poc.discogs.PriceDto;
+import dev.vinyl.poc.domain.CandidateScorer;
+import dev.vinyl.poc.domain.Decider;
+import dev.vinyl.poc.domain.Decision;
+import dev.vinyl.poc.domain.DecisionResult;
+import dev.vinyl.poc.domain.EvidenceBuilder;
+import dev.vinyl.poc.domain.ExtractedFacts;
+import dev.vinyl.poc.domain.PricedCandidate;
+import dev.vinyl.poc.domain.ProfitCalculator;
+import dev.vinyl.poc.domain.ProfitEstimate;
+import dev.vinyl.poc.domain.ReleaseInfo;
+import dev.vinyl.poc.domain.ScoredCandidate;
+import dev.vinyl.poc.vision.FactsMapper;
+import dev.vinyl.poc.vision.ImageResizer;
+import dev.vinyl.poc.vision.PhotoRole;
+import dev.vinyl.poc.vision.VisionCache;
+import dev.vinyl.poc.vision.VisionClient;
+import dev.vinyl.poc.vision.VisionResult;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * One record, start to finish: resize photos, read them, find candidates, score each, decide, price the top
+ * candidate at the user's media grade and estimate profit. Produces one report row.
+ */
+public class RecordPipeline {
+
+    private final VisionClient vision;
+    private final VisionCache cache;
+    private final DiscogsClient discogs;
+    private final PipelineSettings settings;
+    private final Path resizedDir;
+    private final boolean refresh;
+
+    public RecordPipeline(VisionClient vision, VisionCache cache, DiscogsClient discogs, PipelineSettings settings,
+                          Path resizedDir, boolean refresh) {
+        this.vision = vision;
+        this.cache = cache;
+        this.discogs = discogs;
+        this.settings = settings;
+        this.resizedDir = resizedDir;
+        this.refresh = refresh;
+    }
+
+    public ReportRow run(RecordInput rec, Path recordDir) throws IOException {
+        List<String> notes = new ArrayList<>();
+        if (!rec.notes().isEmpty()) {
+            notes.add(rec.notes());
+        }
+
+        VisionResult read = cache.get(rec.id()).filter(r -> !refresh).orElse(null);
+        boolean cached = read != null;
+        if (!cached) {
+            List<Path> photos = ImageResizer.listPhotos(recordDir);
+            if (photos.isEmpty()) {
+                throw new IOException("No photos found in " + recordDir.getFileName());
+            }
+            List<Path> jpegs = ImageResizer.resize(photos, resizedDir.resolve(rec.id()), settings.maxImageEdge());
+            read = vision.extract(jpegs);
+            cache.put(rec.id(), read);
+        }
+        ExtractedFacts facts = FactsMapper.toFacts(read);
+
+        CandidateFinder.Found found = new CandidateFinder(discogs, settings.maxCandidates()).find(facts, read);
+        if (found.skipped() > 0) {
+            notes.add(found.skipped() + " candidate(s) could not be fetched");
+        }
+
+        EvidenceBuilder evidence = new EvidenceBuilder();
+        CandidateScorer scorer = new CandidateScorer(settings.weights());
+        List<ScoredCandidate> scored = new ArrayList<>();
+        for (ReleaseInfo r : found.releases()) {
+            scored.add(scorer.score(r.releaseId(), evidence.build(facts, r)));
+        }
+
+        double plausible = settings.thresholds().plausibleScore();
+        ScoredCandidate best = scored.stream().max(java.util.Comparator.comparingDouble(ScoredCandidate::score))
+                .orElse(null);
+        List<PricedCandidate> priced = new ArrayList<>();
+        for (ScoredCandidate s : scored) {
+            boolean needsPrice = s == best || s.score() >= plausible;
+            Double price = needsPrice ? price(s.releaseId(), rec.mediaGrade(), notes) : null;
+            priced.add(new PricedCandidate(s, price));
+        }
+
+        DecisionResult decision = new Decider(settings.thresholds()).decide(priced);
+        if (found.releases().isEmpty()) {
+            notes.add("no candidates from search stage " + found.stage());
+        }
+
+        Double topPrice = priced.stream().filter(p -> p.candidate().releaseId().equals(decision.topReleaseId()))
+                .map(PricedCandidate::price).findFirst().orElse(null);
+        String profit = "";
+        if (topPrice != null && rec.costBasis() != null && settings.profit() != null) {
+            ProfitEstimate e = new ProfitCalculator(settings.profit())
+                    .estimate(BigDecimal.valueOf(topPrice), rec.costBasis());
+            profit = e.profit().toPlainString();
+        } else if (topPrice != null) {
+            notes.add(settings.profit() == null ? "profit not computed: POC_POSTAGE not set"
+                    : "profit not computed: cost_basis blank");
+        }
+
+        String pricingError = "";
+        if (topPrice != null && rec.ebaySoldAvg() != null) {
+            pricingError = BigDecimal.valueOf(topPrice).subtract(rec.ebaySoldAvg())
+                    .setScale(2, RoundingMode.HALF_UP).toPlainString();
+        }
+
+        double topScore = best == null ? 0 : best.score();
+        return new ReportRow(rec.id(), rec.bucket(), rec.mediaGrade(), decision.decision().name(),
+                nz(decision.topReleaseId()), rec.truthReleaseId(), outcome(decision, rec.truthReleaseId()),
+                String.format("%.2f", topScore), String.format("%.2f", decision.risk().amount()),
+                nz(decision.risk().rivalReleaseId()), found.stage(), String.valueOf(found.releases().size()),
+                String.valueOf(read.photos().size()), missingRoles(read), topPrice == null ? "" : String.format("%.2f", topPrice),
+                profit, rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(), pricingError,
+                String.valueOf(cached), cached ? "0" : read.call().costUsd().toPlainString(),
+                cached ? "0" : String.valueOf(read.call().inputTokens()),
+                cached ? "0" : String.valueOf(read.call().outputTokens()), decision.reason(),
+                String.join("; ", notes));
+    }
+
+    /** correct / flagged_correct / flagged_incorrect / WRONG_UNFLAGGED, or blank without an answer key. */
+    static String outcome(DecisionResult d, String truth) {
+        if (truth == null || truth.isEmpty()) {
+            return "";
+        }
+        boolean right = truth.equals(d.topReleaseId());
+        if (d.decision() == Decision.CONFIDENT) {
+            return right ? "correct" : "WRONG_UNFLAGGED";
+        }
+        return right ? "flagged_correct" : "flagged_incorrect";
+    }
+
+    private static String missingRoles(VisionResult read) {
+        Set<PhotoRole> roles = read.photos().stream().map(p -> p.role()).collect(Collectors.toSet());
+        List<String> missing = new ArrayList<>();
+        if (!roles.contains(PhotoRole.RUNOUT_A)) {
+            missing.add("runout_a");
+        }
+        if (!roles.contains(PhotoRole.RUNOUT_B)) {
+            missing.add("runout_b");
+        }
+        long unclear = read.photos().stream().filter(p -> p.role() == PhotoRole.UNCLEAR).count();
+        if (unclear > 0) {
+            missing.add(unclear + " photo(s) with unclear role");
+        }
+        return String.join(" ", missing);
+    }
+
+    private Double price(String releaseId, String grade, List<String> notes) {
+        try {
+            Map<String, PriceDto> suggestions = discogs.getPriceSuggestions(releaseId);
+            String key = GradeMapper.suggestionKey(grade, suggestions.keySet()).orElse(null);
+            if (key == null) {
+                notes.add("no price suggestion for grade '" + grade + "' on " + releaseId);
+                return null;
+            }
+            PriceDto p = suggestions.get(key);
+            if (!"USD".equals(p.currency())) {
+                notes.add("price for " + releaseId + " is in " + p.currency() + ", not USD; ignored");
+                return null;
+            }
+            return p.value();
+        } catch (DiscogsException e) {
+            notes.add("no price for " + releaseId + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static String nz(String s) {
+        return s == null ? "" : s;
+    }
+}
