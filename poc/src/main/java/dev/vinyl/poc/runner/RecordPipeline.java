@@ -8,6 +8,8 @@ import dev.vinyl.poc.domain.CandidateScorer;
 import dev.vinyl.poc.domain.Decider;
 import dev.vinyl.poc.domain.Decision;
 import dev.vinyl.poc.domain.DecisionResult;
+import dev.vinyl.poc.domain.EbayAlert;
+import dev.vinyl.poc.domain.EbayMatch;
 import dev.vinyl.poc.domain.EvidenceBuilder;
 import dev.vinyl.poc.domain.ExtractedFacts;
 import dev.vinyl.poc.domain.PricedCandidate;
@@ -125,11 +127,19 @@ public class RecordPipeline {
                 String.format("%.2f", topScore), String.format("%.2f", decision.risk().amount()),
                 nz(decision.risk().rivalReleaseId()), found.stage(), String.valueOf(found.releases().size()),
                 String.valueOf(read.photos().size()), missingRoles(read), topPrice == null ? "" : String.format("%.2f", topPrice),
-                priceMissing(decision, topPrice), profit, rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(), pricingError,
+                priceMissing(decision, topPrice), profit, rec.ebaySoldAvg() == null ? "" : rec.ebaySoldAvg().toPlainString(),
+                rec.ebaySoldHigh() == null ? "" : rec.ebaySoldHigh().toPlainString(), rec.ebayMatch(),
+                ebayAlert(topPrice, rec), pricingError,
                 String.valueOf(cached), cached ? "0" : read.call().costUsd().toPlainString(),
                 cached ? "0" : String.valueOf(read.call().inputTokens()),
                 cached ? "0" : String.valueOf(read.call().outputTokens()), decision.reason(),
                 String.join("; ", notes));
+    }
+
+    /** Blank when there is nothing to warn about. Never changes the decision or the price. */
+    static String ebayAlert(Double topPrice, RecordInput rec) {
+        Double high = rec.ebaySoldHigh() == null ? null : rec.ebaySoldHigh().doubleValue();
+        return EbayAlert.defaults().check(topPrice, high, EbayMatch.parse(rec.ebayMatch())).orElse("");
     }
 
     /** Refuses before any paid call. Photos are never dropped silently: one of them may be the runout. */

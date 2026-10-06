@@ -42,7 +42,7 @@ class RecordPipelineTest {
     @Test
     void reportHeaderAndRowHaveTheSameNumberOfColumns() {
         ReportRow row = new ReportRow("1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-                "", "", "", "", "");
+                "", "", "", "", "", "", "", "");
         assertEquals(ReportRow.HEADER.size(), row.fields().size());
         assertTrue(ReportRow.HEADER.contains("price_missing"));
     }
@@ -54,5 +54,16 @@ class RecordPipelineTest {
         java.io.IOException e = assertThrows(java.io.IOException.class, () -> RecordPipeline.checkPhotoCap(12, 11));
         assertTrue(e.getMessage().contains("12 photos"));
         assertTrue(e.getMessage().contains("limit of 11"));
+    }
+
+    @Test
+    void theEbayAlertUsesTheTopPriceAndNeverNeedsEbayData() {
+        // made-up values
+        RecordInput withHigh = new RecordInput("1", "", "VG+", "", "", null, "", null, new java.math.BigDecimal("90"),
+                "same", "");
+        assertTrue(RecordPipeline.ebayAlert(30.0, withHigh).contains("3.0x"));
+        assertEquals("", RecordPipeline.ebayAlert(null, withHigh));
+        RecordInput none = new RecordInput("1", "", "VG+", "", "", null, "", null, null, "", "");
+        assertEquals("", RecordPipeline.ebayAlert(30.0, none));
     }
 }
