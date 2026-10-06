@@ -68,4 +68,40 @@ class CandidateScorerTest {
         assertThrows(IllegalArgumentException.class, () -> IdentifierEvidence.match(BARCODE, " "));
         assertThrows(IllegalArgumentException.class, () -> IdentifierEvidence.mismatch(BARCODE, null));
     }
+
+    @Test
+    void noEvidenceScoresZero() {
+        assertEquals(0.0, scorer.score("A", List.of()).score(), 1e-9);
+    }
+
+    @Test
+    void aMatchAndAMismatchOffsetByWeight() {
+        // barcode +3, catalog number -2 => 1 / 10.5
+        ScoredCandidate c = scorer.score("A", List.of(
+                IdentifierEvidence.match(BARCODE, "x"),
+                IdentifierEvidence.mismatch(CATALOG_NUMBER, "y")));
+        assertEquals(1.0 / 10.5, c.score(), 1e-9);
+        assertTrue(c.hasMismatch());
+    }
+
+    @Test
+    void identifierWithoutAWeightCountsForNothing() {
+        CandidateScorer onlyBarcode = new CandidateScorer(new ScoringWeights(java.util.Map.of(BARCODE, 1.0)));
+        ScoredCandidate c = onlyBarcode.score("A", List.of(
+                IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.match(LABEL, "y")));
+        assertEquals(1.0, c.score(), 1e-9);
+    }
+
+    @Test
+    void zeroTotalWeightScoresZero() {
+        CandidateScorer none = new CandidateScorer(new ScoringWeights(java.util.Map.of()));
+        assertEquals(0.0, none.score("A", List.of(IdentifierEvidence.match(BARCODE, "x"))).score(), 1e-9);
+    }
+
+    @Test
+    void anIdentifierWithNoEvidenceEntryCountsAsMissing() {
+        ScoredCandidate c = scorer.score("A", List.of(IdentifierEvidence.match(BARCODE, "x")));
+        assertTrue(c.isMissing(MATRIX));
+        assertFalse(c.hasMismatch());
+    }
 }

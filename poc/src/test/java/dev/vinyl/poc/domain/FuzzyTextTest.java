@@ -36,4 +36,18 @@ class FuzzyTextTest {
     void emptyPatternMatches() {
         assertTrue(FuzzyText.approxContains("ABC", "", 0));
     }
+
+    @Test
+    void aPatternLongerThanTheTextNeedsEnoughErrors() {
+        assertTrue(FuzzyText.approxContains("ABC", "ABCD", 1));
+        assertFalse(FuzzyText.approxContains("ABC", "ABCD", 0));
+        assertFalse(FuzzyText.approxContains("", "AB", 1));
+        assertTrue(FuzzyText.approxContains("", "A", 1));
+    }
+
+    @Test
+    void matchingIsCaseSensitiveSoCallersNormaliseFirst() {
+        assertFalse(FuzzyText.approxContains("abc", "ABC", 0));
+        assertTrue(FuzzyText.approxContains(FuzzyText.alnum("abc"), FuzzyText.alnum("ABC"), 0));
+    }
 }

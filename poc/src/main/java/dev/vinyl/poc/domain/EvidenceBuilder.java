@@ -41,13 +41,13 @@ public class EvidenceBuilder {
 
     private IdentifierEvidence catalogNumber(ExtractedFacts facts, ReleaseInfo r) {
         List<String> candidates = r.catalogNumbers().stream().map(FuzzyText::alnum).filter(s -> !s.isEmpty()).toList();
-        return compare(Identifier.CATALOG_NUMBER, facts.catalogNumbers(), candidates,
+        return compare(Identifier.CATALOG_NUMBER, readable(facts.catalogNumbers()), candidates,
                 (o, c) -> FuzzyText.alnum(o).equals(c));
     }
 
     private IdentifierEvidence label(ExtractedFacts facts, ReleaseInfo r) {
         List<String> candidates = r.labels().stream().map(FuzzyText::alnum).filter(s -> !s.isEmpty()).toList();
-        return compare(Identifier.LABEL, facts.labels(), candidates, (o, c) -> {
+        return compare(Identifier.LABEL, readable(facts.labels()), candidates, (o, c) -> {
             String a = FuzzyText.alnum(o);
             return !a.isEmpty() && (a.equals(c) || c.contains(a) || a.contains(c));
         });
@@ -60,7 +60,7 @@ public class EvidenceBuilder {
         }
         List<String> candidates = List.of(country.split("\\s*[&,/]\\s*")).stream()
                 .map(EvidenceBuilder::countryAlias).toList();
-        return compare(Identifier.COUNTRY, facts.countries(), candidates,
+        return compare(Identifier.COUNTRY, readable(facts.countries()), candidates,
                 (o, c) -> countryAlias(o.toLowerCase(Locale.ROOT)).equals(c));
     }
 
@@ -118,6 +118,11 @@ public class EvidenceBuilder {
             }
         }
         return IdentifierEvidence.mismatch(id, observed.get(0).rawText());
+    }
+
+    /** A read with no letters or digits says nothing, so it is dropped instead of compared. */
+    private static List<Fact> readable(List<Fact> facts) {
+        return facts.stream().filter(f -> !FuzzyText.alnum(f.value()).isEmpty()).toList();
     }
 
     private static String digitsWithoutLeadingZeros(String s) {

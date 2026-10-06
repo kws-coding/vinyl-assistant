@@ -50,4 +50,44 @@ class ValueAtRiskTest {
     void emptyListHasNoRisk() {
         assertEquals(0.0, ValueAtRisk.compute(List.of(), 0.4).amount(), 1e-9);
     }
+
+    @Test
+    void rivalExactlyAtThePlausibleScoreCounts() {
+        ValueAtRisk v = ValueAtRisk.compute(List.of(pc("top", 0.9, 20.0), pc("r", 0.4, 10.0)), 0.4);
+        assertEquals(4.0, v.amount(), 1e-9);
+        assertEquals("r", v.rivalReleaseId());
+    }
+
+    @Test
+    void rivalWithTheSamePriceAddsNoRisk() {
+        ValueAtRisk v = ValueAtRisk.compute(List.of(pc("top", 0.9, 20.0), pc("r", 0.8, 20.0)), 0.4);
+        assertEquals(0.0, v.amount(), 1e-9);
+        assertNull(v.rivalReleaseId());
+    }
+
+    @Test
+    void aMoreExpensiveRivalIsRiskToo() {
+        ValueAtRisk v = ValueAtRisk.compute(List.of(pc("top", 0.9, 10.0), pc("r", 0.5, 30.0)), 0.4);
+        assertEquals(10.0, v.amount(), 1e-9);
+    }
+
+    @Test
+    void everyPlausibleUnpricedRivalIsCountedAndImplausibleOnesAreNot() {
+        ValueAtRisk v = ValueAtRisk.compute(List.of(
+                pc("top", 0.9, 20.0), pc("a", 0.6, null), pc("b", 0.5, null), pc("far", 0.1, null)), 0.4);
+        assertEquals(2, v.unpricedRivals());
+    }
+
+    @Test
+    void tiedTopScoresStillMeasureTheGapToTheOther() {
+        ValueAtRisk v = ValueAtRisk.compute(List.of(pc("a", 0.8, 20.0), pc("b", 0.8, 30.0)), 0.4);
+        assertEquals(8.0, v.amount(), 1e-9);
+    }
+
+    @Test
+    void aSingleCandidateHasNoRisk() {
+        ValueAtRisk v = ValueAtRisk.compute(List.of(pc("only", 0.9, 20.0)), 0.4);
+        assertEquals(0.0, v.amount(), 1e-9);
+        assertEquals(0, v.unpricedRivals());
+    }
 }

@@ -201,4 +201,99 @@ class EvidenceBuilderTest {
     void candidateWithNoListedRunoutsCannotBeCompared() {
         assertEquals(Outcome.MISSING, one(MATRIX, matrixFact("6016-01"), matrices()).outcome());
     }
+
+    // barcode, more cases
+
+    @Test
+    void anyObservedBarcodeMayMatchAndKeepsItsOwnRawText() {
+        ExtractedFacts photo = facts(List.of(f("999999999999", "wrong"), f("081227966409", "right")),
+                List.of(), List.of(), List.of(), List.of(), List.of());
+        IdentifierEvidence e = one(BARCODE, photo, withBarcodes("081227966409"));
+        assertEquals(Outcome.MATCH, e.outcome());
+        assertEquals("right", e.rawText());
+    }
+
+    @Test
+    void aSixDigitBarcodeReadIsIgnored() {
+        ExtractedFacts photo = facts(List.of(f("081227", "081227")), List.of(), List.of(), List.of(), List.of(), List.of());
+        assertEquals(Outcome.MISSING, one(BARCODE, photo, withBarcodes("081227966409")).outcome());
+    }
+
+    // matrix, boundaries
+
+    @Test
+    void aFiveCharacterRunoutMustMatchExactly() {
+        assertEquals(Outcome.MATCH, one(MATRIX, matrixFact("60160"), matrices("BK06016-01 B1")).outcome());
+        assertEquals(Outcome.MISMATCH, one(MATRIX, matrixFact("60161"), matrices("BK06016-01 B1")).outcome());
+    }
+
+    @Test
+    void sixCharactersAllowOneErrorButNotTwo() {
+        assertEquals(Outcome.MATCH, one(MATRIX, matrixFact("6X1601"), matrices("BK06016-01 B1")).outcome());
+        assertEquals(Outcome.MISMATCH, one(MATRIX, matrixFact("6XX601"), matrices("BK06016-01 B1")).outcome());
+    }
+
+    @Test
+    void aLaterObservedRunoutCanMatchAndAMismatchKeepsTheFirstRawText() {
+        IdentifierEvidence match = one(MATRIX, matrixFact("ZZZZZZ", "6016-01"), matrices("BK06016-01 B1"));
+        assertEquals(Outcome.MATCH, match.outcome());
+        assertEquals("6016-01", match.rawText());
+        IdentifierEvidence miss = one(MATRIX, matrixFact("QQQQQQ", "WWWWWW"), matrices("BK06016-01 B1"));
+        assertEquals(Outcome.MISMATCH, miss.outcome());
+        assertEquals("QQQQQQ", miss.rawText());
+    }
+
+    // country, more cases
+
+    @Test
+    void aMissingCountryOrNoCountryReadIsMissing() {
+        assertEquals(Outcome.MISSING, one(COUNTRY, country("Germany"), inCountry(null)).outcome());
+        assertEquals(Outcome.MISSING, one(COUNTRY, none(), inCountry("US")).outcome());
+    }
+
+    @Test
+    void anyCountryInACombinedNameMatches() {
+        assertEquals(Outcome.MATCH, one(COUNTRY, country("Austria"), inCountry("Germany, Austria & Switzerland")).outcome());
+    }
+
+    @Test
+    void westGermanyCountsAsGermany() {
+        assertEquals(Outcome.MATCH, one(COUNTRY, country("West Germany"), inCountry("Germany")).outcome());
+    }
+
+    // format, more cases
+
+    @Test
+    void monoMatchesMonoAndMismatchesStereo() {
+        assertEquals(Outcome.MATCH, one(FORMAT, formatFact("Mono"), format("LP, Album, Mono")).outcome());
+        assertEquals(Outcome.MISMATCH, one(FORMAT, formatFact("Mono"), format("LP, Album, Stereo")).outcome());
+    }
+
+    @Test
+    void aReleaseListingBothMatchesEitherReadAndNoReadIsMissing() {
+        assertEquals(Outcome.MATCH, one(FORMAT, formatFact("Stereo"), format("LP, Stereo, Mono")).outcome());
+        assertEquals(Outcome.MATCH, one(FORMAT, formatFact("Mono"), format("LP, Stereo, Mono")).outcome());
+        assertEquals(Outcome.MISSING, one(FORMAT, none(), format("LP, Album, Stereo")).outcome());
+    }
+
+    // probes: a read with no letters or digits says nothing, so it should not count against a release
+
+    @Test
+    void aPunctuationOnlyLabelReadIsNotAMismatch() {
+        ExtractedFacts photo = facts(List.of(), List.of(), List.of(f("-", "-")), List.of(), List.of(), List.of());
+        ReleaseInfo r = release("US", List.of(), List.of(), List.of(), List.of("Atlantic"), List.of());
+        assertEquals(Outcome.MISSING, one(LABEL, photo, r).outcome());
+    }
+
+    @Test
+    void aPunctuationOnlyCatalogNumberReadIsNotAMismatch() {
+        ExtractedFacts photo = facts(List.of(), List.of(f("-", "-")), List.of(), List.of(), List.of(), List.of());
+        ReleaseInfo r = release("US", List.of("8122796640"), List.of(), List.of(), List.of(), List.of());
+        assertEquals(Outcome.MISSING, one(CATALOG_NUMBER, photo, r).outcome());
+    }
+
+    @Test
+    void aPunctuationOnlyCountryReadIsNotAMismatch() {
+        assertEquals(Outcome.MISSING, one(COUNTRY, country("."), inCountry("Germany")).outcome());
+    }
 }

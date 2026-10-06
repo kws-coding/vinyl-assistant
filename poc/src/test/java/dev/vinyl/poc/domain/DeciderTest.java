@@ -87,4 +87,78 @@ class DeciderTest {
     void noCandidatesNeedsUserCall() {
         assertEquals(Decision.NEEDS_USER_CALL, decider.decide(List.of()).decision());
     }
+
+    // Boundary tests use weights where scores come out exact: both identifiers matched is 1.0, one is 0.5.
+    private final CandidateScorer halves = new CandidateScorer(
+            new ScoringWeights(java.util.Map.of(BARCODE, 1.0, LABEL, 1.0)));
+
+    private PricedCandidate half(String id, double price, boolean labelMatches) {
+        return new PricedCandidate(halves.score(id, List.of(
+                IdentifierEvidence.match(BARCODE, "x"),
+                labelMatches ? IdentifierEvidence.match(LABEL, "x") : IdentifierEvidence.missing(LABEL),
+                IdentifierEvidence.match(MATRIX, "x"))), price);
+    }
+
+    @Test
+    void riskExactlyAtTheLimitIsStillConfidentAndJustOverIsNot() {
+        Decider d = new Decider(new Thresholds(0.7, 0.4, 5.0));
+        // rival score 0.5, gap 10 => risk 5.0
+        DecisionResult atLimit = d.decide(List.of(half("A", 20.0, true), half("B", 10.0, false)));
+        assertEquals(5.0, atLimit.risk().amount(), 1e-9);
+        assertEquals(Decision.CONFIDENT, atLimit.decision());
+        // gap 11 => risk 5.5
+        DecisionResult over = d.decide(List.of(half("A", 20.0, true), half("B", 9.0, false)));
+        assertEquals(Decision.NEEDS_USER_CALL, over.decision());
+        assertTrue(over.reason().contains("over the limit"));
+        assertEquals("B", over.risk().rivalReleaseId());
+    }
+
+    @Test
+    void scoreExactlyAtTheConfidentLevelIsConfident() {
+        List<PricedCandidate> one = List.of(half("A", 20.0, false)); // score 0.5
+        assertEquals(Decision.CONFIDENT, new Decider(new Thresholds(0.5, 0.4, 5.0)).decide(one).decision());
+        DecisionResult below = new Decider(new Thresholds(0.51, 0.4, 5.0)).decide(one);
+        assertEquals(Decision.NEEDS_USER_CALL, below.decision());
+        assertTrue(below.reason().contains("below the confident level"));
+    }
+
+    @Test
+    void highestScoreWinsWhateverTheListOrder() {
+        IdentifierEvidence[] full = {
+                IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.match(CATALOG_NUMBER, "x"),
+                IdentifierEvidence.match(MATRIX, "x"), IdentifierEvidence.match(COUNTRY, "x"),
+                IdentifierEvidence.match(LABEL, "x")};
+        DecisionResult r = decider.decide(List.of(
+                priced("weak", 20.0, IdentifierEvidence.match(BARCODE, "x")),
+                priced("strong", 20.0, full)));
+        assertEquals("strong", r.topReleaseId());
+        assertEquals(Decision.CONFIDENT, r.decision());
+    }
+
+    @Test
+    void tiedPressingsAtTheSamePriceHaveNoMoneyAtRisk() {
+        IdentifierEvidence[] full = {
+                IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.match(CATALOG_NUMBER, "x"),
+                IdentifierEvidence.match(MATRIX, "x"), IdentifierEvidence.match(COUNTRY, "x"),
+                IdentifierEvidence.match(LABEL, "x")};
+        DecisionResult same = decider.decide(List.of(priced("A", 20.0, full), priced("B", 20.0, full)));
+        assertEquals(Decision.CONFIDENT, same.decision());
+        assertEquals(0.0, same.risk().amount(), 1e-9);
+        DecisionResult apart = decider.decide(List.of(priced("A", 20.0, full), priced("B", 40.0, full)));
+        assertEquals(Decision.NEEDS_USER_CALL, apart.decision());
+        assertEquals(20.0 * 10.0 / 10.5, apart.risk().amount(), 1e-9); // gap 20 x rival score
+    }
+
+    @Test
+    void reasonsNameWhatTheUserShouldLookAt() {
+        IdentifierEvidence[] full = {
+                IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.match(CATALOG_NUMBER, "x"),
+                IdentifierEvidence.match(MATRIX, "x"), IdentifierEvidence.match(COUNTRY, "x"),
+                IdentifierEvidence.match(LABEL, "x")};
+        assertTrue(decider.decide(List.of(priced("A", 20.0, full), priced("B", null, full)))
+                .reason().contains("no price"));
+        assertTrue(decider.decide(List.of(priced("A", 20.0,
+                IdentifierEvidence.match(BARCODE, "x"), IdentifierEvidence.mismatch(LABEL, "x"),
+                IdentifierEvidence.match(MATRIX, "x")))).reason().contains("mismatch"));
+    }
 }

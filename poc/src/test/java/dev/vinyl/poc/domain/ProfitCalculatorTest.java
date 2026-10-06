@@ -48,4 +48,21 @@ class ProfitCalculatorTest {
         assertEquals(d("1.15"), e.fee());
         assertEquals(d("-1.15"), e.profit());
     }
+
+    @Test
+    void roundsHalfUpAtTheHalfCent() {
+        // fee = 0.10 * 0.05 = 0.005 -> 0.01; profit = 0.05 - 0.005 = 0.045 -> 0.05 (half-even would give 0.00 and 0.04)
+        ProfitSettings s = new ProfitSettings(d("0.10"), d("0"), d("0"), d("0"), d("0"), d("0"));
+        ProfitEstimate e = new ProfitCalculator(s).estimate(d("0.05"), d("0"));
+        assertEquals(d("0.01"), e.fee());
+        assertEquals(d("0.05"), e.profit());
+    }
+
+    @Test
+    void withNoFeesProfitIsWhatIsChargedMinusCosts() {
+        ProfitSettings s = new ProfitSettings(d("0"), d("0"), d("5.50"), d("4.50"), d("1.00"), d("0"));
+        ProfitEstimate e = new ProfitCalculator(s).estimate(d("20.00"), d("3.00"));
+        assertEquals(d("0.00"), e.fee());
+        assertEquals(d("17.00"), e.profit());
+    }
 }
