@@ -26,6 +26,7 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - No Discogs sales-history endpoint found. Only `/marketplace/sales/{id}`, `/releases/{id}/sales`, `/marketplace/history/{id}` (all 404) and `/releases/{id}/stats` (returns only `is_offensive`) were tried.
 - Price suggestions return a price per grade. Only checked on two releases. Whether they depend on the seller account is unknown.
 - Search by catalog number plus label works, but it is not known whether it finds the right release for record 001.
+- Replay of record 001 with evidence stripped (2026-10-05, cached vision result, Discogs calls only): the artist-and-title fallback fetches only the top 15 results and the true release was not among them, so with no barcode and no catalog number the right release is never scored. It was flagged, but only because every score was 0. No variant produced a wrong-and-unflagged result. One record and synthetic degradations, so this says little about real accuracy.
 - Search returns only the first page (50 results). Barcode search for record 001 returned 10. Pagination is not handled.
 - 429 retry and error handling were tested only against a fake local server, not live.
 - Discogs terms: show "Data provided by Discogs" with a link in reports, do not store Discogs content, non-commercial marketplace data only. Not yet enforced in code.
