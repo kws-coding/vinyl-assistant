@@ -18,6 +18,7 @@ import java.util.List;
  * Throwaway runner. Usage: Main [--root DIR] [--only ID] [--refresh]
  * DIR holds records.csv and records/NNN/ folders (default: current directory). Needs VINYL_ANTHROPIC_KEY and
  * DISCOGS_TOKEN in the environment; POC_POSTAGE (real label cost) is needed for profit estimates.
+ * POC_MAX_PHOTOS (default 11) caps photos per record; a record over the cap is reported as failed, not sent.
  */
 public class Main {
 
@@ -37,7 +38,9 @@ public class Main {
         VisionConfig vcfg = VisionConfig.fromEnvironment();
         String postage = System.getenv("POC_POSTAGE");
         ProfitSettings profit = postage == null || postage.isBlank() ? null : ProfitSettings.defaults(new BigDecimal(postage));
-        PipelineSettings settings = new PipelineSettings(15, vcfg.maxImageEdge(), ScoringWeights.defaults(),
+        String maxPhotosEnv = System.getenv("POC_MAX_PHOTOS");
+        int maxPhotos = maxPhotosEnv == null || maxPhotosEnv.isBlank() ? 11 : Integer.parseInt(maxPhotosEnv.trim());
+        PipelineSettings settings = new PipelineSettings(15, vcfg.maxImageEdge(), maxPhotos, ScoringWeights.defaults(),
                 Thresholds.defaults(), profit);
 
         CallLog log = new CallLog();

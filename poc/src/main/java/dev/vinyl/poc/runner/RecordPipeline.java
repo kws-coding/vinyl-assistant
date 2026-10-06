@@ -67,6 +67,7 @@ public class RecordPipeline {
             if (photos.isEmpty()) {
                 throw new IOException("No photos found in " + recordDir.getFileName());
             }
+            checkPhotoCap(photos.size(), settings.maxPhotos());
             List<Path> jpegs = ImageResizer.resize(photos, resizedDir.resolve(rec.id()), settings.maxImageEdge());
             read = vision.extract(jpegs);
             cache.put(rec.id(), read);
@@ -129,6 +130,14 @@ public class RecordPipeline {
                 cached ? "0" : String.valueOf(read.call().inputTokens()),
                 cached ? "0" : String.valueOf(read.call().outputTokens()), decision.reason(),
                 String.join("; ", notes));
+    }
+
+    /** Refuses before any paid call. Photos are never dropped silently: one of them may be the runout. */
+    static void checkPhotoCap(int photos, int max) throws IOException {
+        if (photos > max) {
+            throw new IOException("Not sent to the vision model: " + photos + " photos is over the limit of " + max
+                    + " (POC_MAX_PHOTOS). Remove photos or raise the limit.");
+        }
     }
 
     /** "true" when there is a top release but no price for it at the user's grade; blank when there is no top release. */

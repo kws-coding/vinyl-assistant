@@ -46,4 +46,13 @@ class RecordPipelineTest {
         assertEquals(ReportRow.HEADER.size(), row.fields().size());
         assertTrue(ReportRow.HEADER.contains("price_missing"));
     }
+
+    @Test
+    void photoCapAllowsUpToTheLimitAndRefusesAboveItBeforeAnyCall() throws Exception {
+        RecordPipeline.checkPhotoCap(11, 11);
+        RecordPipeline.checkPhotoCap(1, 11);
+        java.io.IOException e = assertThrows(java.io.IOException.class, () -> RecordPipeline.checkPhotoCap(12, 11));
+        assertTrue(e.getMessage().contains("12 photos"));
+        assertTrue(e.getMessage().contains("limit of 11"));
+    }
 }

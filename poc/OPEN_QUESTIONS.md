@@ -19,6 +19,9 @@ Things that are guessed, untested, or not confirmed from official docs. Remove a
 - Still open: a full-length barcode with one wrong digit is still a mismatch (score drop 0.86 to 0.29 on the replay). Decide after real photos show how often barcodes are misread.
 - Still open: a single candidate with no price comes out CONFIDENT by design (the id is confident; price is reported separately). Price reliability is unchecked until `ebay_sold_avg` exists.
 
+## Later (real app)
+- Cost control for uploaded photos that never become listings: vision calls should run only on an explicit user action, with a per-day or per-batch budget, and every call logged with its cost in the event log. The POC only has a photo cap per record (`POC_MAX_PHOTOS`, default 11) and the vision cache.
+
 ## Unverified facts
 - eBay fee model (13.6% of item + shipping + tax, plus $0.40) is a placeholder from the brief. Tax rate defaults to 0.
 - JUnit 6.1.3 and Jackson 3.2.3 coordinates came from Maven Central metadata. The JUnit docs pages did not show them. Jackson 3 notes were read from the official wiki. Both build and run.
