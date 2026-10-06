@@ -65,7 +65,9 @@ public class VisionClient {
         String body = requestBody(jpegs);
         HttpResponse<String> response = post(body);
         if (response.statusCode() != 200) {
-            throw new VisionException("Anthropic API returned HTTP " + response.statusCode());
+            String detail = response.body() == null ? "" : response.body();
+            throw new VisionException("Anthropic API returned HTTP " + response.statusCode() + ": "
+                    + detail.substring(0, Math.min(detail.length(), 500)));
         }
         MessageResponse msg = mapper.readValue(response.body(), MessageResponse.class);
         if ("max_tokens".equals(msg.stopReason()) || "refusal".equals(msg.stopReason())) {
