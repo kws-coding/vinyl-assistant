@@ -14,6 +14,8 @@ public class EvidenceBuilder {
     private static final int MIN_MATRIX_CHARS = 5;
     private static final int MATRIX_FUZZY_FROM = 6;
     private static final int MIN_BARCODE_DIGITS = 8;
+    private static final int MIN_DISTINGUISHING_CHARS = 4;
+    private static final int MIN_CATALOG_RUN = 4;
     /** Discogs release countries that say nothing about where a copy was manufactured. */
     private static final Set<String> BROAD_COUNTRIES = Set.of("worldwide", "europe");
 
@@ -36,11 +38,32 @@ public class EvidenceBuilder {
         List<Fact> observed = facts.barcodes().stream()
                 .filter(f -> digitsWithoutLeadingZeros(f.value()).length() >= MIN_BARCODE_DIGITS - 1).toList();
         IdentifierEvidence result = compare(Identifier.BARCODE, observed, candidates,
-                (o, c) -> digitsWithoutLeadingZeros(o).equals(c));
+                (o, c) -> {
+                    String digits = digitsWithoutLeadingZeros(o);
+                    return digits.equals(c) || differsOnlyByCheckDigit(digits, c);
+                });
         if (result.outcome() == Outcome.MISMATCH && isFragmentOfListed(observed, candidates)) {
             return IdentifierEvidence.missing(Identifier.BARCODE);
         }
         return result;
+    }
+
+    /**
+     * The printed number often leaves out the check digit that Discogs lists (or the other way round). One side
+     * matches the other when it is the same digits plus the correct final EAN/UPC check digit.
+     */
+    static boolean differsOnlyByCheckDigit(String a, String b) {
+        String shorter = a.length() <= b.length() ? a : b;
+        String longer = shorter == a ? b : a;
+        if (longer.length() != shorter.length() + 1 || shorter.length() > 12 || !longer.startsWith(shorter)) {
+            return false;
+        }
+        String padded = "0".repeat(12 - shorter.length()) + shorter;
+        int sum = 0;
+        for (int i = 0; i < 12; i++) {
+            sum += (padded.charAt(i) - '0') * (i % 2 == 0 ? 1 : 3);
+        }
+        return (10 - sum % 10) % 10 == longer.charAt(longer.length() - 1) - '0';
     }
 
     /** A truncated read is a piece of the real barcode, so it neither confirms nor contradicts it. */
@@ -106,13 +129,40 @@ public class EvidenceBuilder {
      */
     private IdentifierEvidence matrix(ExtractedFacts facts, ReleaseInfo r) {
         List<String> candidates = r.matrices().stream().map(FuzzyText::alnum).filter(s -> !s.isEmpty()).toList();
+        List<String> catalogNumbers = r.catalogNumbers().stream().map(FuzzyText::alnum).toList();
         List<Fact> observed = facts.matrices().stream()
-                .filter(f -> FuzzyText.alnum(f.value()).length() >= MIN_MATRIX_CHARS).toList();
+                .filter(f -> FuzzyText.alnum(f.value()).length() >= MIN_MATRIX_CHARS)
+                .filter(f -> distinguishingChars(FuzzyText.alnum(f.value()), catalogNumbers) >= MIN_DISTINGUISHING_CHARS)
+                .toList();
         return compare(Identifier.MATRIX, observed, candidates, (o, c) -> {
             String fragment = FuzzyText.alnum(o);
             int errors = fragment.length() >= MATRIX_FUZZY_FROM ? 1 : 0;
             return FuzzyText.approxContains(c, fragment, errors);
         });
+    }
+
+    /**
+     * A read that is mostly the catalog number (a label rim, or the start of a stamper code) is on every pressing
+     * of the release, so it cannot tell them apart. Counts the characters left after removing runs of four or
+     * more that appear in a catalog number.
+     */
+    static int distinguishingChars(String fragment, List<String> catalogNumbers) {
+        String rest = fragment;
+        for (String cat : catalogNumbers) {
+            for (int len = Math.min(rest.length(), cat.length()); len >= MIN_CATALOG_RUN; len--) {
+                boolean removed = false;
+                for (int i = 0; i + len <= rest.length() && !removed; i++) {
+                    if (cat.contains(rest.substring(i, i + len))) {
+                        rest = rest.substring(0, i) + rest.substring(i + len);
+                        removed = true;
+                    }
+                }
+                if (removed) {
+                    break;
+                }
+            }
+        }
+        return rest.length();
     }
 
     private static IdentifierEvidence compare(Identifier id, List<Fact> observed, List<String> candidates,

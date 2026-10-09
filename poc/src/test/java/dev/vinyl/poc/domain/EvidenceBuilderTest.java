@@ -316,4 +316,51 @@ class EvidenceBuilderTest {
         ExtractedFacts photo = facts(List.of(f("081227966400", "0 81227 96640 0")), List.of(), List.of(), List.of(), List.of(), List.of());
         assertEquals(Outcome.MISMATCH, one(BARCODE, photo, withBarcodes("081227966409")).outcome());
     }
+
+    // check digit and catalog-number-only runouts (found on records 002 and 004, 2026-10-09)
+
+    @Test
+    void aBarcodeReadWithoutTheCheckDigitMatchesTheFullListedUpc() {
+        ExtractedFacts photo = facts(List.of(f("0 7559-60437-1", "0 7559-60437-1")), List.of(), List.of(), List.of(),
+                List.of(), List.of());
+        assertEquals(Outcome.MATCH, one(BARCODE, photo, withBarcodes("075596043717")).outcome());
+        assertEquals(Outcome.MATCH, one(BARCODE, photo, withBarcodes("07559604371")).outcome());
+    }
+
+    @Test
+    void aWrongCheckDigitIsNotAMatch() {
+        ExtractedFacts photo = facts(List.of(f("0 7559-60437-1", "0 7559-60437-1")), List.of(), List.of(), List.of(),
+                List.of(), List.of());
+        assertEquals(Outcome.MISSING, one(BARCODE, photo, withBarcodes("075596043710")).outcome());
+    }
+
+    @Test
+    void checkDigitHelperWorksBothWays() {
+        assertEquals(true, EvidenceBuilder.differsOnlyByCheckDigit("7559604371", "75596043717"));
+        assertEquals(true, EvidenceBuilder.differsOnlyByCheckDigit("75596043717", "7559604371"));
+        assertEquals(false, EvidenceBuilder.differsOnlyByCheckDigit("7559604371", "75596043712"));
+    }
+
+    @Test
+    void aRunoutThatIsOnlyTheCatalogNumberIsNotEvidence() {
+        ReleaseInfo r = new ReleaseInfo("1", "T", "US", 1973, List.of("APL1-0291"), List.of(),
+                List.of("APL1-0291 A-6 I A2"), List.of("RCA"), List.of());
+        assertEquals(Outcome.MISSING, new EvidenceBuilder().build(
+                facts(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(f("APL1-029", "APL1-029"))), r)
+                .stream().filter(e -> e.identifier() == MATRIX).findFirst().orElseThrow().outcome());
+    }
+
+    @Test
+    void aStamperPrefixPlusCatalogNumberIsNotEvidenceButTheSuffixIs() {
+        ReleaseInfo r = new ReleaseInfo("1", "T", "US", 1985, List.of("60437-1"), List.of(),
+                List.of("ST-E-60437-1-A-SP"), List.of("Elektra"), List.of());
+        assertEquals(Outcome.MISSING, matrixOutcome(r, "STE-60437"));
+        assertEquals(Outcome.MATCH, matrixOutcome(r, "ST-E-60437-1-A-SP"));
+    }
+
+    private static Outcome matrixOutcome(ReleaseInfo r, String raw) {
+        return new EvidenceBuilder().build(
+                facts(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(f(raw, raw))), r)
+                .stream().filter(e -> e.identifier() == MATRIX).findFirst().orElseThrow().outcome();
+    }
 }
