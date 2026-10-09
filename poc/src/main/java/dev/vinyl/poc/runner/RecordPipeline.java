@@ -6,6 +6,7 @@ import dev.vinyl.poc.discogs.GradeMapper;
 import dev.vinyl.poc.discogs.PriceDto;
 import dev.vinyl.poc.domain.CandidateScorer;
 import dev.vinyl.poc.domain.Decider;
+import dev.vinyl.poc.domain.MixedPhotosCheck;
 import dev.vinyl.poc.domain.Decision;
 import dev.vinyl.poc.domain.DecisionResult;
 import dev.vinyl.poc.domain.EbayAlert;
@@ -97,7 +98,13 @@ public class RecordPipeline {
             priced.add(new PricedCandidate(s, price));
         }
 
-        DecisionResult decision = new Decider(settings.thresholds()).decide(priced);
+        DecisionResult decided = new Decider(settings.thresholds()).decide(priced);
+        var mixed = MixedPhotosCheck.conflict(
+                read.observationsFor("artist").stream().map(o -> o.value()).toList(),
+                read.observationsFor("title").stream().map(o -> o.value()).toList());
+        final DecisionResult decision = mixed.isEmpty() ? decided
+                : new DecisionResult(Decision.NEEDS_USER_CALL, decided.topReleaseId(), decided.risk(),
+                "Photos look like more than one album (" + mixed.get() + "): check the folder. " + decided.reason());
         if (found.releases().isEmpty()) {
             notes.add("no candidates from search stage " + found.stage());
         }

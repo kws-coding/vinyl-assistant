@@ -1,3 +1,30 @@
+# Update 2026-10-09 (Friday): after the first real photos
+
+Read this first. The Monday notes below are still the run order.
+
+## What happened
+- Records 002 to 004 were run ($0.10 first run, $0.07 rerun of 002 and 004 after the user fixed mixed-up folders). No confident-and-wrong result in any run.
+- First run: folders 002 and 004 each held photos of two albums (Steel Pulse and Bowie Pin Ups). Folder 002 STILL holds two Bowie label photos.
+- The vision cache is keyed by record id, not by photo list. After changing a folder, rerun that record with `Main --only ID --refresh` or the old result is reused silently.
+
+## Code changes (committed, post-run, so they are not blind to the data)
+- Barcode: a printed number without its check digit now matches the listed full UPC (and the reverse). This was the cause of the wrong pick on 002 in the first run.
+- Matrix: a read that is mostly the catalog number is ignored (label rim text, `APL1-029`). Record 001 went from CONFIDENT 0.86 to 0.29, because its only runout match was the barcode digits etched in the runout, and a misread `SNC60016-01` (real `BK06016-01`) now shows as a mismatch.
+- Mixed-photos guard (`MixedPhotosCheck`): two unrelated artists or titles in one folder forces NEEDS_USER_CALL with a "check the folder" reason.
+
+## Open issues
+- A matrix mismatch from one misread etching sinks a correct release (001). Revisit the mismatch weight once tomorrow's data is in.
+- Runout photos were weak on 002 and 003 (angled, glare, suffix cut off). Shoot straight on, one per side, whole arc, lamp low.
+- The model reported the label's printed `ST-E-60437-1-B-SP` as a runout. Label rim text is not a runout.
+- Informal visual condition look (not blind, not part of the experiment): 003 looked more like VG+/VG than the user's NM.
+
+## For the next batch
+- One folder per record, nothing else in it. Do not fill `truth_release_id` before the shortlist. Lock grades in `records.csv` and commit before the condition run.
+- `THRESHOLDS.md` still needs the user's approval before the full run.
+- Free: `Main` on all records (cached), then `SummaryMain --report <that report>`.
+
+---
+
 # Pickup notes for the Wednesday test (written 2026-10-05, Monday)
 
 Resume from here. State: everything is committed, 187 unit tests pass, and nothing paid has run since record 001 ($0.062). Details and caveats are in `OPEN_QUESTIONS.md`; the bars are in `../THRESHOLDS.md` (DRAFT, not approved).
